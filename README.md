@@ -12,12 +12,12 @@ Nelua also is very good at handling data and dynamic array, (Like [sequences](ht
 
 ## Instruction Set
 
-[x] RV64I Base <br>
-[x] Pseudoinstruction <br>
-[x] Integer Multiplication and Division Extension <br>
-[] Single-Precision Floating-Point Extension <br>
-[] Double-Precision Floating-Point <br>
-[] Compressed Instructions
+- [x] RV64I Base <br>
+- [x] Pseudoinstruction <br>
+- [x] Integer Multiplication and Division Extension <br>
+- [ ] Single-Precision Floating-Point Extension <br>
+- [ ] Double-Precision Floating-Point <br>
+- [ ] Compressed Instructions
 
 ## Syntax
 
@@ -86,11 +86,11 @@ This program returns exit code of 69, `echo $?` prints the exit code of the last
 See the [example](https://github.com/DoubleShotgun/Rasm/blob/main/example) folder for more.
 
 ## Todo
-[] Rework the "Syntax system". <br>
-[] Rework the syntax of "call" and "ecall". <br>
-
-`label(a0,a1,...)`
-
+- [ ] Rework the "Syntax system". '
+- [ ] Rework the syntax of "call" and "ecall".
+```
+label(a0,a1,...)
+```
 Will be equivalent to:
 
 ```
@@ -100,12 +100,12 @@ call label
 ```
 
 
-[] Better error message. <br>
-[] Add array, struct and vectors. <br>
-   Make standard library. <br>
-[] io
-[] string
-[] system
-[] fb (frame buffer device)
-[] and more!
-[] Tested on Window. <br>
+- [ ] Better error message.
+- [ ] Add array, struct and vectors.
+*   Make standard library.
+	- [ ] io
+	- [ ] string
+	- [ ] system
+	- [ ] fb (frame buffer device)
+
+- [ ] Tested on Window. <br>
