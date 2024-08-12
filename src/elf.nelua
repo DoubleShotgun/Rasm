@@ -1,0 +1,155 @@
+--Ripped from linux/elf.h
+
+local addressOffset:uint64 <const> = 0x10000
+
+local elf64Ehdr = @record {
+  e_ident:[16]uint8,
+  eype:uint16,
+  e_machine:uint16,
+  e_version:uint32,
+  e_entry:uint64,
+  e_phoff:uint64,
+  e_shoff:uint64,
+  e_flags:uint32,
+  e_ehsize:uint16,
+  e_phentsize:uint16,
+  e_phnum:uint16,
+  e_shentsize:uint16,
+  e_shnum:uint16,
+  e_shstrndx:uint16,
+}
+
+local elf64Shdr = @record{
+    sh_name:uint32,
+    sh_type:uint32,
+    sh_flags:uint64,
+    sh_addr:uint64,
+    sh_offset:uint64,
+    sh_size:uint64,
+    sh_link:uint32,
+    sh_info:uint32,
+    sh_addralign:uint64,
+    sh_entsize:uint64,
+}
+
+local elf64Phdr = @record {
+  p_type:uint32;
+  p_flags:uint32;
+  p_offset:uint64;
+  p_vuint:uint64;
+  p_puint:uint64;
+  p_filesz:uint64;
+  p_memsz:uint64;
+  p_align:uint64;
+}
+
+
+local shdrs:sequence(elf64Shdr)
+local names:hashmap(string,uint32)
+local nameLen=0
+
+
+local function addString(name:string):uint32
+	local ret=nameLen
+	nameLen=nameLen+#name
+	names[name]=nameLen
+	return ret
+end
+
+addString("\0")
+
+local function addShdr(name:string, sType:uint64, flag:uint32, size:uint64, offset:uint64)
+	local a
+	if name==".text" then
+		a=4
+	else
+		a=1
+	end
+	
+	name = name.."\0"
+	local nameN
+	nameN = addString(name)
+	local shdr:elf64Shdr = {
+		nameN,
+		sType, 
+		flag, 
+		offset,
+		offset,
+		size, 
+		0,
+		0,
+		a,
+		0
+	}
+	
+	shdrs[#shdrs+1] = shdr
+end
+
+global function writeToFile(filename:string,program:sequence(uint32),start:uint64,strip:boolean)
+
+
+	addShdr(
+		".text",
+		1, --PROGBITS
+		7, --WRITE | ALLOC | EXEC
+		getProgramSize(),
+		addressOffset+64+#elf64Shdr*2
+	)
+
+	if not strip then
+		addShdr(".shstrtab",3, 0,0,64+#elf64Shdr*2+getProgramSize()+#elf64Phdr)
+	end
+
+	local ph:elf64Phdr = {
+		1, --LOAD
+		7,
+		0,
+		addressOffset,
+		addressOffset,
+		getProgramSize(),
+		getProgramSize(),
+		0x1000
+	}
+
+
+	local header:elf64Ehdr = {
+		{0x7f,0x45,0x4c,0x46,2,1,1,0},
+		2,
+		243, --RISC-V
+		1,
+		64+addressOffset+#shdrs*#elf64Shdr+start,
+		64+getProgramSize()+#shdrs*#elf64Shdr,
+		64,
+		4,
+		64,
+		56,
+		1,
+		64,
+		#shdrs,
+		0,
+	}
+
+	shdrs[2].sh_size=nameLen
+
+	local file = C.fopen(filename,"w")
+	if file==0 then
+		os.exit(1)
+	end
+
+	C.fwrite(&header,#elf64Ehdr,1,file)	
+	for i=1,<#shdrs do
+		C.fwrite(&shdrs[1], #elf64Shdr,1,file)
+	end
+
+	C.fwrite(&program[1],4,#program,file)
+
+	C.fwrite(&ph,#elf64Phdr,1,file)
+
+	if not strip then
+		for k,v in pairs(names) do
+			C.fwrite(&k[1], #k,1,file)
+		end
+	end
+
+	C.fclose(file)
+end

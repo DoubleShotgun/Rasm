@@ -1,0 +1,157 @@
+global pseudoInstr:hashmap(string,@record{
+	argc:uint32,
+	assemble:function(args:[3]uint32):sequence(uint32)
+})
+
+pseudoInstr["li"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		local ret:sequence(uint32)
+		if args[1]<=0xfff then
+			ret = {getInstr("addi",{args[0],0,args[1]})}
+		else
+			ret = {
+				getInstr("lui",{args[0],args[1]>>12}),
+				getInstr("addiw",{args[0],args[0],args[1]}),
+			}
+		end
+		return ret
+	end
+}
+
+pseudoInstr["la"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		local val
+		if (@int32)(args[1])<0 then
+			val = ~(args[1])>>12
+		else
+			val = args[1]>>12
+		end
+		return {
+			getInstr("auipc",{args[0],val}),
+			getInstr("addi",{args[0],args[0],args[1]}),
+		}
+	end
+}
+
+pseudoInstr["mv"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("addi",{args[0],args[1],0})}
+	end
+}
+
+pseudoInstr["not"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("xori",{args[0],args[1],0xfff})}
+	end
+}
+
+pseudoInstr["neg"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("sub",{args[0],0,args[1]})}
+	end
+}
+
+pseudoInstr["bgt"] = {
+	3,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("blt",{args[1],args[0],args[2]})}
+	end
+}
+
+pseudoInstr["ble"] = {
+	3,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("bge",{args[1],args[0],args[2]})}
+	end
+}
+
+pseudoInstr["bgtu"] = {
+	3,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("bltu",{args[1],args[0],args[2]})}
+	end
+}
+
+pseudoInstr["bleu"] = {
+	3,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("bgeu",{args[1],args[0],args[2]})}
+	end
+}
+
+pseudoInstr["beqz"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("beq",{args[0],0,args[1]})}
+	end
+}
+
+pseudoInstr["bnez"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("bne",{args[0],0,args[1]})}
+	end
+}
+
+pseudoInstr["bgez"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("bge",{args[0],0,args[1]})}
+	end
+}
+
+pseudoInstr["bgez"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("bge",{0,args[0],args[1]})}
+	end
+}
+
+pseudoInstr["bgtz"] = {
+	2,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("blt",{0,args[0],args[1]})}
+	end
+}
+
+pseudoInstr["j"] = {
+	1,
+	function(args:[3]uint32):sequence(uint32)
+		return {getInstr("jal",{0,args[0]})}
+	end
+}
+
+pseudoInstr["call"] = {
+	1,
+	function(args:[3]uint32):sequence(uint32)
+		local ret:sequence(uint32)
+		if args[1]<=0xfff then
+			ret = {getInstr("jalr",{1,1,args[0]})}
+		else
+			ret = {
+				getInstr("lui",{1,args[0]>>12}),
+				getInstr("jalr",{1,1,args[0]}),
+			}
+		end
+		return ret
+	end
+}
+
+pseudoInstr["ret"] = {
+	0,
+	function(args:[3]uint32):sequence(uint32)
+		return {0x00008067}
+	end
+}
+
+pseudoInstr["nop"] = {
+	0,
+	function(args:[3]uint32):sequence(uint32)
+		return {0x13}
+	end
+}

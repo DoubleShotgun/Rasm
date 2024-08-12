@@ -1,0 +1,65 @@
+instruction["lb"]      = {instrType.i,0x03,0}
+instruction["lh"]      = {instrType.i,0x03,1}
+instruction["lw"]      = {instrType.i,0x03,2}
+instruction["ld"]      = {instrType.i,0x03,3}
+instruction["lbu"]     = {instrType.i,0x03,4}
+instruction["lhu"]     = {instrType.i,0x03,5}
+instruction["lwu"]     = {instrType.i,0x03,6}
+instruction["fence"]   = {instrType.i,0x0f,0}
+instruction["fence.i"] = {instrType.i,0x0f,1}
+instruction["addi"]    = {instrType.i,0x13,0}
+instruction["slli"]    = {instrType.i,0x13,1}
+instruction["slti"]    = {instrType.i,0x13,2}
+instruction["sltiu"]   = {instrType.i,0x13,3}
+instruction["xori"]    = {instrType.i,0x13,4}
+instruction["srli"]    = {instrType.i,0x13,5}
+instruction["srai"]    = {instrType.i,0x13,5,0x20}
+instruction["ori"]     = {instrType.i,0x13,6}
+instruction["andi"]    = {instrType.i,0x13,7}
+instruction["addiw"]   = {instrType.i,0x1b,0}
+instruction["slliw"]   = {instrType.i,0x1b,1}
+instruction["srliw"]   = {instrType.i,0x1b,5}
+instruction["sraiw"]   = {instrType.i,0x1b,5,0x20}
+instruction["jalr"]    = {instrType.i,0x67,0}
+instruction["csrrw"]   = {instrType.i,0x73,1}
+instruction["csrrs"]   = {instrType.i,0x73,2}
+instruction["csrrc"]   = {instrType.i,0x73,3}
+instruction["csrrwi"]  = {instrType.i,0x73,5}
+instruction["csrrsi"]  = {instrType.i,0x73,6}
+instruction["csrrci"]  = {instrType.i,0x73,7}
+
+instruction["add"]     = {instrType.r,0x33,0,0}
+instruction["sub"]     = {instrType.r,0x33,0,0x20}
+instruction["sll"]     = {instrType.r,0x33,1,0}
+instruction["slt"]     = {instrType.r,0x33,2,0}
+instruction["sltu"]    = {instrType.r,0x33,3,0}
+instruction["xor"]     = {instrType.r,0x33,4,0}
+instruction["srl"]     = {instrType.r,0x33,5,0}
+instruction["sra"]     = {instrType.r,0x33,5,0x20}
+instruction["or"]      = {instrType.r,0x33,6,0}
+instruction["and"]     = {instrType.r,0x33,7,0}
+instruction["addw"]    = {instrType.r,0x3b,0,0}
+instruction["subw"]    = {instrType.r,0x3b,0,0x20}
+instruction["sllw"]    = {instrType.r,0x3b,1,0}
+instruction["srlw"]    = {instrType.r,0x3b,5,0}
+instruction["sraw"]    = {instrType.r,0x3b,5,0x20}
+
+instruction["sb"]      = {instrType.s,0x23,0}
+instruction["sh"]      = {instrType.s,0x23,1}
+instruction["sw"]      = {instrType.s,0x23,2}
+instruction["sd"]      = {instrType.s,0x23,3}
+
+instruction["beq"]     = {instrType.sb,0x63,0}
+instruction["bne"]     = {instrType.sb,0x63,1}
+instruction["blt"]     = {instrType.sb,0x63,4}
+instruction["bge"]     = {instrType.sb,0x63,5}
+instruction["bltu"]    = {instrType.sb,0x63,6}
+instruction["bgeu"]    = {instrType.sb,0x63,7}
+
+instruction["lui"]     = {instrType.u,0x37}
+instruction["auipc"]   = {instrType.u,0x17}
+
+instruction["jal"]     = {instrType.uj,0x6f}
+
+instruction["ecall"]   = {instrType.n,0x73,0,0}
+instruction["ebreak"]  = {instrType.n,0x73,0,1}

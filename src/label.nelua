@@ -1,0 +1,37 @@
+global labels:hashmap(string,@record{
+	 value:uint64 ,length:int64
+})
+
+labels["zero"] = {0,-1}
+labels["ra"]   = {1,-1}
+labels["sp"]   = {2,-1}
+labels["gp"]   = {3,-1}
+labels["tp"]   = {4,-1}
+labels["t0"]   = {5,-1}
+labels["t1"]   = {6,-1}
+labels["t2"]   = {7,-1}
+labels["fp"]   = {8,-1}
+labels["s0"]   = {8,-1}
+labels["s1"]   = {9,-1}
+labels["a0"]   = {10,-1}
+labels["a1"]   = {11,-1}
+labels["a2"]   = {12,-1}
+labels["a3"]   = {13,-1}
+labels["a4"]   = {14,-1}
+labels["a5"]   = {15,-1}
+labels["a6"]   = {16,-1}
+labels["a7"]   = {17,-1}
+labels["s2"]   = {18,-1}
+labels["s3"]   = {19,-1}
+labels["s4"]   = {20,-1}
+labels["s5"]   = {21,-1}
+labels["s6"]   = {22,-1}
+labels["s7"]   = {23,-1}
+labels["s8"]   = {24,-1}
+labels["s9"]   = {25,-1}
+labels["s10"]  = {26,-1}
+labels["s11"]  = {27,-1}
+labels["t3"]   = {28,-1}
+labels["t4"]   = {29,-1}
+labels["t5"]   = {30,-1}
+labels["t6"]   = {31,-1}

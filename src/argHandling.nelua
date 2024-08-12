@@ -1,0 +1,72 @@
+global fileout:string
+global filein:string
+
+global execPath = arg[0]
+global execArgs = (@record{dump:boolean})({})
+
+local skipArg = false
+
+local optType = @enum {
+	bool = 0,
+	fileout
+}
+
+local opt:hashmap(uint8,@record{
+	type:optType,
+	argCount:uint32,
+	execArgsP:*void
+})
+
+opt[string.byte("d")] = {
+	optType.bool,
+	0,
+	&execArgs.dump
+}
+opt[string.byte("o")] = {
+	optType.fileout,
+	0,
+	(@*void)(0)
+}
+
+local function handleOpt(char:uint8,i:uint64)
+	switch opt[char].type do
+	case optType.bool then
+		$(@*boolean)(opt[char].execArgsP) = true
+	case optType.fileout then
+		if i==#arg then
+			print("Error: No argument for option")
+			print("rasm usage: "..arg[0].." [d]o a.out filein.asm")
+			os.exit(2)
+		else
+			fileout = arg[i+1]
+			skipArg = true
+		end
+	end
+end
+
+for i,a in ipairs(arg) do
+	if skipArg then
+		if i==#arg then
+			print("Error: No filein")
+			print("rasm usage: "..arg[0].." [d]o a.out filein.asm")
+			os.exit(2)
+		end
+		skipArg=false
+		continue
+	end
+	if i==#arg then
+		filein=a
+		break
+	end
+
+	for _,v in ipairs(arg[i]) do
+		if not opt:has(v) then
+			print("Error: \""..string.char(v)..'"'.." No such option")
+			print("rasm usage: "..arg[0].." [d]o a.out filein.asm")
+			os.exit(2)
+		end
+		handleOpt(v,i)
+	end
+end
+
+fileout = fileout=="" and "./a.out" or fileout

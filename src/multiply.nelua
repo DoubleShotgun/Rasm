@@ -1,0 +1,14 @@
+instruction["mul"]    = {instrType.r,0x33,0,1}
+instruction["mulh"]   = {instrType.r,0x33,1,1}
+instruction["mulhsu"] = {instrType.r,0x33,2,1}
+instruction["mulhu"]  = {instrType.r,0x33,3,1}
+instruction["div"]    = {instrType.r,0x33,4,1}
+instruction["divu"]   = {instrType.r,0x33,5,1}
+instruction["rem"]    = {instrType.r,0x33,6,1}
+instruction["remu"]   = {instrType.r,0x33,7,1}
+
+instruction["mulw"]   = {instrType.r,0x3b,0,1}
+instruction["divw"]   = {instrType.r,0x3b,4,1}
+instruction["divuw"]  = {instrType.r,0x3b,5,1}
+instruction["remw"] 	= {instrType.r,0x3b,6,1}
+instruction["remuw"] 	= {instrType.r,0x3b,7,1}
