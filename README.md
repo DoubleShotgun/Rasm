@@ -33,33 +33,34 @@ See [Todo](https://github.com/DoubleShotgun/Rasm#Todo) for more.
 `li a0,%String`
 
 ## Setup & Install
-### Install Qemu User Static
-	You will need Qemu User Static run to the executable.
 
-	Debian/Ubuntu (apt)
-	```
-	apt update
-	apt install qemu-user-static
-	```
-	Void Linux (xbps)
-	```
-	xbps-install -Su qemu-user-static
-	```
+### Install Qemu User Static
+
+You will need Qemu User Static run to the executable.
+
+Debian/Ubuntu (apt)
+```
+apt update
+apt install qemu-user-static
+```
+Void Linux (xbps)
+```
+xbps-install -Su qemu-user-static
+```
+ 
 ### With Nelua:
-	1. [Install](https://nelua.io/installing/) Nelua
-	2. Clone Rasm `git clone https://github.com/Doubleshotgun/rasm`
-	3. ```
-	   cd rasm
-	   nelua main.nelua -o ./rasm
-	   ```
-	4. Install `mv rasm /usr/local/bin/`
+1. [Install Nelua](https://nelua.io/installing/)
+2. Clone Rasm `git clone https://github.com/Doubleshotgun/Rasm`
+3. Compile `cd Rasm` <br>
+`nelua main.nelua -o ./rasm`
+
+4. Install `mv rasm`<br>`/usr/local/bin/`
+
 ### With GCC/Clang:
-	1. Clone Rasm `git clone https://github.com/Doubleshotgun/rasm`
-	2. ```
-	   cd rasm
-	   cc rasm.c -o ./rasm
-	   ```
-	3. Install `mv rasm /usr/local/bin/`
+1. Clone Rasm `git clone https://github.com/Doubleshotgun/Rasm`
+2. Compile `cd Rasm` <br>
+`cc rasm.c -o ./rasm`
+3. Install `mv rasm`<br>`/usr/local/bin/`
 
 ## Example
 
