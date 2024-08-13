@@ -1,0 +1,6 @@
+global program:sequence(uint8)
+global stringLen:uint64
+
+global function getProgramSize() <inline>
+	return #program
+end

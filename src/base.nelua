@@ -1,7 +1,7 @@
 instruction["lb"]      = {instrType.i,0x03,0}
 instruction["lh"]      = {instrType.i,0x03,1}
 instruction["lw"]      = {instrType.i,0x03,2}
-instruction["ld"]      = {instrType.i,0x03,3}
+instruction["ld"]      = {instrType.i,0x03,3}	
 instruction["lbu"]     = {instrType.i,0x03,4}
 instruction["lhu"]     = {instrType.i,0x03,5}
 instruction["lwu"]     = {instrType.i,0x03,6}

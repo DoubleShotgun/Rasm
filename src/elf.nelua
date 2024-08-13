@@ -85,7 +85,7 @@ local function addShdr(name:string, sType:uint64, flag:uint32, size:uint64, offs
 	shdrs[#shdrs+1] = shdr
 end
 
-global function writeToFile(filename:string,program:sequence(uint32),start:uint64,strip:boolean)
+global function writeToFile(filename:string,program:sequence(uint8),start:uint64,strip:boolean)
 
 
 	addShdr(
@@ -141,7 +141,7 @@ global function writeToFile(filename:string,program:sequence(uint32),start:uint6
 		C.fwrite(&shdrs[1], #elf64Shdr,1,file)
 	end
 
-	C.fwrite(&program[1],4,#program,file)
+	C.fwrite(&program[1],1,#program,file)
 
 	C.fwrite(&ph,#elf64Phdr,1,file)
 

@@ -15,10 +15,10 @@ global instruction:hashmap(string,@record{
 	func7:uint8,
 })
 
-global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint32)
+global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint64)
 	
 	local size:isize 
-	local args:[3]uint32
+	local args:[3]uint64
 	if instruction:has(mnemonic) then
 		switch instruction[mnemonic].type do
 		case instrType.n then
@@ -44,24 +44,24 @@ global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint32)
 		local str = a[i+1]
 		if str=="" then break end
 		if str:match("^-?%d*$") then
-			args[i] = (@uint32)(tointeger(str))
+			args[i] = (@uint64)(tointeger(str))
 		elseif labels:has(str) then
 			if labels[str].length==-1 then
 				args[i] = labels[str].value
 			else
-				args[i] = (@uint32)(labels[str].value-getProgramSize())
+				args[i] = (@uint64)(labels[str].value-getProgramSize())
 			end
 		elseif str:match("^%%") then
 			local label = str:sub(2,#str)
 			if labels:has(label) then
-				args[i] = (@uint32)(labels[label].length)
+				args[i] = (@uint64)(labels[label].length)
 			end
 		end
 	end
 	return size,args
 end
 
-global function getInstr(mnemonic:string,args:[3]uint32):uint32
+global function getInstr(mnemonic:string,args:[3]uint64):[4]uint8
 	if not instruction:has(mnemonic) then
 		print("Error: no such mnemonic")
 		os.exit(1)
@@ -104,5 +104,10 @@ global function getInstr(mnemonic:string,args:[3]uint32):uint32
 		instr = instr | (((args[1]>>12)&0b011111111)<<12) -- 19:12
 		instr = instr | (((args[1]>>20))<<31) -- 20
 	end
-	return instr
+	return {
+		(@uint8)(instr),
+		(@uint8)(instr>>8),
+		(@uint8)(instr>>16),
+		(@uint8)(instr>>24)
+	}
 end

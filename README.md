@@ -100,13 +100,13 @@ la a1,String
 call label
 ```
 
-
 - [ ] Better error message.
 - [ ] Add array, struct and vectors.
 *   Make standard library.
 	- [ ] io
 	- [ ] string
-	- [ ] system
+	- [ ] time
+	- [ ] math
 	- [ ] fb (frame buffer device)
 
 - [ ] Tested on Window. <br>

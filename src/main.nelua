@@ -12,14 +12,7 @@ require("hashmap")
 require("sequence")
 require("math")
 
-
-global program:sequence(uint32)
-global stringLen:uint64
-
-global function getProgramSize() <inline>
-	return #program*4
-end
-
+require("common")
 require("argHandling")
 require("label")
 require("instr")
@@ -92,7 +85,6 @@ local function parseString(str:string)
 	return retStr
 end
 
-
 for line in file:lines() do
 	if line:match("^%s*#") then continue end
 	if line:match("%s*%S*:%s*$") then
@@ -107,19 +99,14 @@ for line in file:lines() do
 		local args = select(2,line:match("(%S+)%s*=%s*(%S+)"))
 		if args[2]:match("[\"']") then
 			local str = parseString(args[2])
-			--Rounds up the length of the string to the nearest dividable by 4
-			local len = (#str + 3) & ~0b11
-			local pi
-			for i=0,<#str do
-				if i%4==0 then
-					pi = #program+1
-				end
-				program[pi] = program[pi] | (@uint32)(str[i+1])<<((i%4))*8
-			end
-			stringLen = stringLen+len
 			
-			labels[args[1]] = {addressLabel,len}
-			addressLabel=addressLabel+len
+			for i=1,#str do
+				program[#program+1] = (@uint8)(str[i])
+			end
+			stringLen = stringLen+#str
+			
+			labels[args[1]] = {addressLabel,#str}
+			addressLabel=addressLabel+#str
 		else
 			labels[args[1]] = {(@uint64)(tointeger(args[2])),-1}
 		end
@@ -132,7 +119,7 @@ for line in file:lines() do
 			length = 4
 		else
 			local size,args = getArgs(mnemonic,b[2])
-			length = #pseudoInstr[mnemonic].assemble(args)*4
+			length = #pseudoInstr[mnemonic].assemble(args)
 		end
 		addressLabel=addressLabel+length
 	end 
@@ -147,6 +134,11 @@ end
 global curLine = 1
 file:seek("set")
 
+local function addInstrToProgram(instr:[4]uint8)
+	for i=0,3 do
+		program[#program+1] = instr[i]
+	end
+end
 
 for line in file:lines() do
 	if line:match("^%s*#") then continue end
@@ -157,11 +149,11 @@ for line in file:lines() do
 		local size,args = getArgs(mnemonic,b[2])
 		
 		if instruction:has(mnemonic) then
-			program[#program+1] = getInstr(mnemonic,args)
+			addInstrToProgram(getInstr(mnemonic,args))
 		elseif pseudoInstr:has(mnemonic) then
-			local instres = pseudoInstr[mnemonic].assemble(args)
-			for i=1,#instres do
-				program[#program+1] = instres[i]
+			local bytes = pseudoInstr[mnemonic].assemble(args)
+			for i=1,#bytes do
+				program[#program+1] = bytes[i]
 			end
 		end
 	end
@@ -173,7 +165,7 @@ file:close()
 
 if execArgs.dump then
 	for _,v in ipairs(program) do
-		C.fwrite(&v,4,1,cfile)
+		C.fwrite(&v,1,1,cfile)
 	end
 	C.fclose(cfile)
 end
