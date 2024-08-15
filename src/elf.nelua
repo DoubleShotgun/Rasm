@@ -1,6 +1,7 @@
 --Ripped from linux/elf.h
 
 local addressOffset:uint64 <const> = 0x10000
+local paddingSize = 16
 
 local elf64Ehdr = @record {
   e_ident:[16]uint8,
@@ -56,9 +57,13 @@ local function addString(name:string):uint32
 	return ret
 end
 
-addString("\0")
-
 local function addShdr(name:string, sType:uint64, flag:uint32, size:uint64, offset:uint64)
+	if sType==0 then
+		addString("\0")
+		shdrs[#shdrs+1] = (@elf64Shdr)({0})
+		return
+	end
+	
 	local a
 	if name==".text" then
 		a=4
@@ -67,13 +72,12 @@ local function addShdr(name:string, sType:uint64, flag:uint32, size:uint64, offs
 	end
 	
 	name = name.."\0"
-	local nameN
-	nameN = addString(name)
+	local nameN = addString(name)
 	local shdr:elf64Shdr = {
 		nameN,
 		sType, 
 		flag, 
-		offset,
+		addressOffset+offset,
 		offset,
 		size, 
 		0,
@@ -87,27 +91,36 @@ end
 
 global function writeToFile(filename:string,program:sequence(uint8),start:uint64,strip:boolean)
 
-
+	addShdr(
+		"",
+		0,
+		0,
+		0,
+		0
+	)
+	
 	addShdr(
 		".text",
 		1, --PROGBITS
 		7, --WRITE | ALLOC | EXEC
 		getProgramSize(),
-		addressOffset+64+#elf64Shdr*2
+		64+#elf64Shdr*3
 	)
 
 	if not strip then
-		addShdr(".shstrtab",3, 0,0,64+#elf64Shdr*2+getProgramSize()+#elf64Phdr)
+		addShdr(".shstrtab",3, 0,0,64+(#elf64Shdr*(#shdrs+1))+getProgramSize()+#elf64Phdr)
+		shdrs[#shdrs].sh_addr=0
+		shdrs[#shdrs].sh_size=nameLen
 	end
-
+	
 	local ph:elf64Phdr = {
 		1, --LOAD
 		7,
 		0,
 		addressOffset,
 		addressOffset,
-		getProgramSize(),
-		getProgramSize(),
+		getProgramSize()+paddingSize,
+		getProgramSize()+paddingSize,
 		0x1000
 	}
 
@@ -126,10 +139,10 @@ global function writeToFile(filename:string,program:sequence(uint8),start:uint64
 		1,
 		64,
 		#shdrs,
-		0,
+		#shdrs-1,
 	}
 
-	shdrs[2].sh_size=nameLen
+	
 
 	local file = C.fopen(filename,"w")
 	if file==0 then
@@ -137,8 +150,8 @@ global function writeToFile(filename:string,program:sequence(uint8),start:uint64
 	end
 
 	C.fwrite(&header,#elf64Ehdr,1,file)	
-	for i=1,<#shdrs do
-		C.fwrite(&shdrs[1], #elf64Shdr,1,file)
+	for i=1,<=#shdrs do
+		C.fwrite(&shdrs[i], #elf64Shdr,1,file)
 	end
 
 	C.fwrite(&program[1],1,#program,file)

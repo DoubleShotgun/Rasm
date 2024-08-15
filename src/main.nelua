@@ -26,7 +26,7 @@ local addressLabel:int64
 local preAddressLabel:int64
 
 local file = io.open(filein)
-if not file then
+if not file:isopen() then
 	print("Error: unable to open filein")
 	os.exit(1)
 end
@@ -41,7 +41,6 @@ local function parseString(str:string)
 	local escape=false
 	local retStr = ""
 	
-	str = str:sub(2,#str)
 	for _,char in ipairs(str) do
 		if escape then
 			switch char do
@@ -56,7 +55,7 @@ local function parseString(str:string)
 			case 98 then -- b
 				retStr = retStr.."\b"
 			case 101 then -- e
-				retStr = retStr..0x1b
+				retStr = retStr..string.char(0x1b)
 			case 110 then -- n
 				retStr = retStr.."\n"
 			case 114 then -- n
@@ -86,7 +85,7 @@ local function parseString(str:string)
 end
 
 for line in file:lines() do
-	if line:match("^%s*#") then continue end
+	if line:match("#") then continue end
 	if line:match("%s*%S*:%s*$") then
 	
 		local label:string = select(2,line:match("%s*(%S*):"))[1]
@@ -96,18 +95,29 @@ for line in file:lines() do
 		preAddressLabel = addressLabel
 		curLabel=label
 	elseif line:match("%S+%s*=%s*%S+") then
-		local args = select(2,line:match("(%S+)%s*=%s*(%S+)"))
-		if args[2]:match("[\"']") then
+		if line:match("[\"']") then
+			local args = select(2,line:match("(%S+)%s*=%s*\"(.*)\""))
 			local str = parseString(args[2])
-			
+
 			for i=1,#str do
 				program[#program+1] = (@uint8)(str[i])
 			end
-			stringLen = stringLen+#str
 			
-			labels[args[1]] = {addressLabel,#str}
+			local len = #str
+			if #str%2==1 then
+				len = len+1
+			end
+			
+			stringLen = stringLen+#str
+			labels[args[1]] = {addressLabel,len}
 			addressLabel=addressLabel+#str
+			
+			if #str%2==1 then
+				program[#program+1]=0
+				addressLabel=addressLabel+1
+			end
 		else
+			local args = select(2,line:match("%s*(%S*)%s*=%s*(.*)"))
 			labels[args[1]] = {(@uint64)(tointeger(args[2])),-1}
 		end
 	elseif line:match("%S") then
@@ -124,7 +134,9 @@ for line in file:lines() do
 		addressLabel=addressLabel+length
 	end 
 end
+
 labels[curLabel] = {preAddressLabel,addressLabel-preAddressLabel}
+
 
 if not labels:has("_start") then
 	print("Error: failed to find '_start' label")
@@ -139,6 +151,7 @@ local function addInstrToProgram(instr:[4]uint8)
 		program[#program+1] = instr[i]
 	end
 end
+
 
 for line in file:lines() do
 	if line:match("^%s*#") then continue end
@@ -170,5 +183,5 @@ if execArgs.dump then
 	C.fclose(cfile)
 end
 
-writeToFile(fileout,program,labels["_start"].value,true)
+writeToFile(fileout,program,labels["_start"].value,false)
 io.popen("chmod +x "..fileout)

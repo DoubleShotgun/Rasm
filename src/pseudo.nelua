@@ -139,11 +139,11 @@ pseudoInstr["call"] = {
 	function(args:[3]uint64):sequence(uint8)
 		local ret:sequence(uint8)
 		if args[1]<=0xfff then
-			return getInstr("jalr",{1,1,args[0]})
+			return getInstr("jal",{1,args[0]})
 		else
 			return concat(
-				getInstr("lui",{1,args[0]>>12}),
-				getInstr("jalr",{1,1,args[0]})
+				getInstr("auipc",{1,args[0]>>12}),
+				getInstr("jal",{1,args[0]})
 			)
 		end
 	end
