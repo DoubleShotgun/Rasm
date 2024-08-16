@@ -3,15 +3,6 @@
 Rasm is a simple but powerful [RISC-V](https://riscv.org/about/) (RV64I) assembler that aims to make the syntax to be more like [C](https://en.wikipedia.org/wiki/C_(programming_language)), and it's written in [Nelua](https://nelua.io).
 <br>
 
-## Instruction Set
-
-- [x] RV64I Base <br>
-- [x] Pseudoinstruction <br>
-- [x] Integer Multiplication and Division Extension <br>
-- [ ] Single-Precision Floating-Point Extension <br>
-- [ ] Double-Precision Floating-Point <br>
-- [ ] Compressed Instructions
-
 ## Syntax
 
 Rasm's syntax is just like the RV64I standard, except for these changes: 
@@ -25,6 +16,24 @@ See [Todo](https://github.com/DoubleShotgun/Rasm#Todo) for more.
 - Prefixing a label with '%' while refering, gets the length of the label.
 `li a0,%String`
 
+## Usage
+```
+Usage: rasm [d][s][o a.out] filein.asm
+'-' are optional.
+```
+* Options
+	- d: dump compiled raw binary to 'dump.bin'
+	- s: add section name (Advance)
+	- o a.out: outfile for compiled code
+
+## Instruction Set
+
+- [x] RV64I Base <br>
+- [x] Pseudoinstruction <br>
+- [x] Integer Multiplication and Division Extension <br>
+- [ ] Single-Precision Floating-Point Extension <br>
+- [ ] Double-Precision Floating-Point <br>
+- [ ] Compressed Instructions
 ## Setup & Install
 
 ### Install Qemu User Static
@@ -44,14 +53,20 @@ xbps-install -Su qemu-user-static
 ### Building with Nelua:
 1. [Install Nelua](https://nelua.io/installing/)
 2. Clone Rasm `git clone https://github.com/Doubleshotgun/Rasm`
-3. Compile ```cd Rasm
-make```
+3. Compile 
+```
+cd Rasm
+make
+```
 
 
 ### Building with GCC/Clang:
 1. Clone Rasm `git clone https://github.com/Doubleshotgun/Rasm`
-2. Compile ```cd Rasm
-make CC```
+2. Compile 
+```
+cd Rasm
+make CC
+```
 
 ### Installing
 The executable is automatically install at `/usr/local/bin/`
@@ -93,6 +108,7 @@ la a1,String
 call label
 ```
 
+- [ ] Link to C libraries.
 - [ ] Better error message.
 - [ ] Add array, struct and vectors.
 *   Make standard library.
@@ -104,4 +120,3 @@ call label
 	- [ ] [Rives](https://rives.io/)
 
 - [ ] Tested on Window.
-- [ ] Link to C libraries.

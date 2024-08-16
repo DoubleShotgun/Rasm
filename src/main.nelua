@@ -1,7 +1,10 @@
 require("string")
 require("arg")
+global usageStr = "Usage: "..arg[0]..[[ [d][s][o a.out] filein.asm
+'-' are optional.]]
+
 if #arg==0 then
-	print("rasm usage: "..arg[0].." [d]o a.out filein.asm")
+	print(usageStr)
 	return 2
 end
 
@@ -183,5 +186,5 @@ if execArgs.dump then
 	C.fclose(cfile)
 end
 
-writeToFile(fileout,program,labels["_start"].value,false)
+writeToFile(fileout,program,labels["_start"].value,execArgs.strip)
 io.popen("chmod +x "..fileout)
