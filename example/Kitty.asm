@@ -2,6 +2,8 @@ write = 64
 exit = 93
 nanosleep = 101
 
+# original art by Joan Stark (https://oldcompcz.github.io/jgs/joan_stark/)
+
 cat1 = "       \\    /\\\n        )  ( \')\n       (  /  )\njgs     \\(__)|\n"
 cat2 = "      \\     /\\\n       |   ( \')\n       |  /  )\njgs     \\(__)|\n"
 cat3 = "            /\\\n     _     ( \')\n      \\_  /  )\njgs     \\(__)|\n"

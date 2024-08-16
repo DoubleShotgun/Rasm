@@ -3,13 +3,6 @@
 Rasm is a simple but powerful [RISC-V](https://riscv.org/about/) (RV64I) assembler that aims to make the syntax to be more like [C](https://en.wikipedia.org/wiki/C_(programming_language)), and it's written in [Nelua](https://nelua.io).
 <br>
 
-## Why in Nelua
-
-Nelua is a minimal, efficient, statically-typed programming that compiles down to C and native code. This means you don't need Nelua to compile Rasm, Just any C compiler!
-
-Nelua also is very good at handling data and dynamic array, (Like [sequences](https://nelua.io/libraries/#sequence)) and it's syntax is inspired by [Lua](https://www.lua.org/about.html)
-(I like Lua)
-
 ## Instruction Set
 
 - [x] RV64I Base <br>
@@ -47,21 +40,21 @@ Void Linux (xbps)
 ```
 xbps-install -Su qemu-user-static
 ```
- 
-### With Nelua:
+
+### Building with Nelua:
 1. [Install Nelua](https://nelua.io/installing/)
 2. Clone Rasm `git clone https://github.com/Doubleshotgun/Rasm`
-3. Compile `cd Rasm` <br>
-`nelua main.nelua -o ./rasm`
+3. Compile ```cd Rasm
+make```
 
-4. Install `mv rasm`<br>`/usr/local/bin/`
 
-### With GCC/Clang:
+### Building with GCC/Clang:
 1. Clone Rasm `git clone https://github.com/Doubleshotgun/Rasm`
-2. Compile `cd Rasm` <br>
-`cc rasm.c -o ./rasm`
-3. Install `mv rasm`<br>`/usr/local/bin/`
+2. Compile ```cd Rasm
+make CC```
 
+### Installing
+The executable is automatically install at `/usr/local/bin/`
 ## Example
 
 - example.asm
@@ -87,7 +80,7 @@ This program returns exit code of 69, `echo $?` prints the exit code of the last
 See the [example](https://github.com/DoubleShotgun/Rasm/blob/main/example) folder for more.
 
 ## Todo
-- [ ] Rework the "Syntax system". '
+- [ ] Rework the "Syntax system".
 - [ ] Rework the syntax of "call" and "ecall".
 ```
 label(a0,a1,...)
@@ -108,5 +101,7 @@ call label
 	- [ ] time
 	- [ ] math
 	- [ ] fb (frame buffer device)
+	- [ ] [Rives](https://rives.io/)
 
-- [ ] Tested on Window. <br>
+- [ ] Tested on Window.
+- [ ] Link to C libraries.
