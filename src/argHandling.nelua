@@ -1,5 +1,4 @@
 global fileout:string
-global filein:string
 
 global execPath = arg[0]
 global execArgs = (@record{

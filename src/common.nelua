@@ -1,6 +1,60 @@
+global curLine = 1
+global filein:string
+
 global program:sequence(uint8)
 global stringLen:uint64
 
 global function getProgramSize() <inline>
 	return #program
+end
+
+global function rasmError(str:string,code:uint8)
+	io.stderr:write(filein..":"..curLine..": Error "..str.."\n")
+	os.exit(code)
+end
+
+global function parseString(str:string)
+	local escape=false
+	local retStr = ""
+	
+	for _,char in ipairs(str) do
+		if escape then
+			switch char do
+			case 34 then -- "
+				retStr = retStr.."\""
+			case 39 then -- '
+				retStr = retStr.."\'"
+			case 92 then -- \
+				retStr = retStr.."\\"
+			case 97 then -- a
+				retStr = retStr.."\a"
+			case 98 then -- b
+				retStr = retStr.."\b"
+			case 101 then -- e
+				retStr = retStr..string.char(0x1b)
+			case 110 then -- n
+				retStr = retStr.."\n"
+			case 114 then -- n
+				retStr = retStr.."\r"
+			case 116 then -- t
+				retStr = retStr.."\t"
+			else
+				rasmError("")
+			end
+			escape=false
+		else
+			switch char do
+			case 92 then -- \
+				escape=true
+			case 39 then -- '
+				fallthrough
+			case 34 then -- "
+				return retStr
+			else
+				retStr = retStr..string.char(char)
+			end
+		end
+			
+	end
+	return retStr
 end

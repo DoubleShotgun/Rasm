@@ -1,10 +1,10 @@
 
 global pseudoInstr:hashmap(string,@record{
-	argc:uint16,
-	assemble:function(args:[3]uint64):sequence(uint8)
+	argc:uint8,
+	assemble:function(args:sequence(uint64)):sequence(uint8)
 })
 
-local infiniteSize = 0xffff
+local infiniteSize = 0xff
 
 local function concat(s1:sequence(uint8),s2:sequence(uint8)):sequence(uint8)
 	for i=1,#s2 do
@@ -15,7 +15,7 @@ end
 
 pseudoInstr["li"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		if args[1]<=0xfff then
 			return getInstr("addi",{args[0],0,args[1]})
 		else
@@ -29,7 +29,7 @@ pseudoInstr["li"] = {
 
 pseudoInstr["la"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		local val
 		if (@int64)(args[1])<0 then
 			val = ~(args[1])>>12
@@ -45,134 +45,130 @@ pseudoInstr["la"] = {
 
 pseudoInstr["mv"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("addi",{args[0],args[1],0})
 	end
 }
 
 pseudoInstr["not"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("xori",{args[0],args[1],0xfff})
 	end
 }
 
 pseudoInstr["neg"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("sub",{args[0],0,args[1]})
 	end
 }
 
 pseudoInstr["bgt"] = {
 	3,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("blt",{args[1],args[0],args[2]})
 	end
 }
 
 pseudoInstr["ble"] = {
 	3,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("bge",{args[1],args[0],args[2]})
 	end
 }
 
 pseudoInstr["bgtu"] = {
 	3,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("bltu",{args[1],args[0],args[2]})
 	end
 }
 
 pseudoInstr["bleu"] = {
 	3,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("bgeu",{args[1],args[0],args[2]})
 	end
 }
 
 pseudoInstr["beqz"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("beq",{args[0],0,args[1]})
 	end
 }
 
 pseudoInstr["bnez"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("bne",{args[0],0,args[1]})
 	end
 }
 
 pseudoInstr["bgez"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("bge",{args[0],0,args[1]})
 	end
 }
 
 pseudoInstr["bgez"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("bge",{0,args[0],args[1]})
 	end
 }
 
 pseudoInstr["bgtz"] = {
 	2,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("blt",{0,args[0],args[1]})
 	end
 }
 
 pseudoInstr["j"] = {
 	1,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return getInstr("jal",{0,args[0]})
 	end
 }
 
 pseudoInstr["call"] = {
 	1,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		local ret:sequence(uint8)
-		if args[1]<=0xfff then
-			return getInstr("jal",{1,args[0]})
-		else
-			return concat(
-				getInstr("auipc",{1,args[0]>>12}),
-				getInstr("jal",{1,args[0]})
-			)
-		end
+		return concat(
+			getInstr("auipc",{1,args[0]>>12}),
+			getInstr("jal",{1,args[0]})
+		)
 	end
 }
 
 pseudoInstr["ret"] = {
 	0,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return {0x67,0x80,0,0}
 	end
 }
 
 pseudoInstr["nop"] = {
 	0,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return {0x13,0,0,0}
 	end
 }
 
 pseudoInstr["db"] = {
 	infiniteSize,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return {args[0]&0xff}
 	end
 }
 
 pseudoInstr["dh"] = {
 	infiniteSize,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return {
 			args[0]&0xff,
 			(args[0]>>8)&0xff
@@ -182,7 +178,7 @@ pseudoInstr["dh"] = {
 
 pseudoInstr["dw"] = {
 	infiniteSize,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return {
 			args[0]&0xff,
 			(args[0]>>8)&0xff,
@@ -194,7 +190,7 @@ pseudoInstr["dw"] = {
 
 pseudoInstr["dd"] = {
 	infiniteSize,
-	function(args:[3]uint64):sequence(uint8)
+	function(args:sequence(uint64)):sequence(uint8)
 		return {
 			args[0]&0xff,
 			(args[0]>>8)&0xff,

@@ -34,44 +34,111 @@ local elf64Shdr = @record{
 }
 
 local elf64Phdr = @record {
-  p_type:uint32;
-  p_flags:uint32;
-  p_offset:uint64;
-  p_vuint:uint64;
-  p_puint:uint64;
-  p_filesz:uint64;
-  p_memsz:uint64;
-  p_align:uint64;
+  p_type:uint32,
+  p_flags:uint32,
+  p_offset:uint64,
+  p_vuint:uint64,
+  p_puint:uint64,
+  p_filesz:uint64,
+  p_memsz:uint64,
+  p_align:uint64,
+}
+
+local elf64Sym = @record {
+  st_name:uint32,
+  st_info:uint8,
+  st_other:uint8,
+  st_shndx:uint16,
+  st_value:uint64,
+  st_size:uint64,
+}
+
+local elf64Rel = @record {
+	r_offset:uint64,
+	r_info:uint64,
 }
 
 
 local shdrs:sequence(elf64Shdr)
+local syms:sequence(elf64Sym)
+local rels:sequence(elf64Rel)
 local names:hashmap(string,uint32)
 local nameLen=0
 
-
 local function addString(name:string):uint32
-	local ret=nameLen
-	nameLen=nameLen+#name
-	names[name]=nameLen
+	local ret=0
+	name=name.."\0"
+	if names:has(name) then
+		return names[name]
+	end
+	if name~="" then
+		ret=nameLen
+		names[name]=nameLen
+		nameLen=nameLen+#name
+	end
 	return ret
 end
 
+addString("\0")
+
+local function addSym(name:string,info:uint8,value:uint64,shindex:uint16):uint32
+	local nameN = addString(name)
+	local ret=#syms
+	syms[#syms+1]= (@elf64Sym)({
+		nameN,
+		info,
+		0,
+		shindex,
+		value,
+		0
+	})
+	return ret
+end
+
+addSym("",0,0,0)
+addSym(".text",3,0,1)
+
+global function addElfRel(name:string,offset:uint64)
+	if name=="" then
+		rels[#rels+1] = {
+			offset,
+			51
+		}
+	else
+		local symN = addSym(name,16,0)
+		rels[#rels+1] = {
+			offset,
+			(@uint64)(symN)<<32|19
+		}
+	end
+end
+
+
 local function addShdr(name:string, sType:uint64, flag:uint32, size:uint64, offset:uint64)
 	if sType==0 then
-		addString("\0")
 		shdrs[#shdrs+1] = (@elf64Shdr)({0})
 		return
 	end
 	
-	local a
+	local align=1
 	if name==".text" then
-		a=4
-	else
-		a=1
+		align=4
 	end
 	
-	name = name.."\0"
+	local link=0
+	local eSize=0
+	local info=0
+	if sType==2 then
+		link=#shdrs+1
+		eSize=24
+		info=#syms-1
+	end
+	if sType==9 then
+		link=#shdrs+1
+		eSize=16
+		info=1
+	end
+	
 	local nameN = addString(name)
 	local shdr:elf64Shdr = {
 		nameN,
@@ -80,66 +147,98 @@ local function addShdr(name:string, sType:uint64, flag:uint32, size:uint64, offs
 		addressOffset+offset,
 		offset,
 		size, 
-		0,
-		0,
-		a,
-		0
+		link,
+		info,
+		align,
+		eSize,
 	}
 	
 	shdrs[#shdrs+1] = shdr
 end
 
-global function writeToFile(filename:string,program:sequence(uint8),start:uint64,strip:boolean)
-
-	addShdr(
-		"",
-		0,
-		0,
-		0,
-		0
-	)
+global function writeToFile(filename:string,program:sequence(uint8),start:uint64)
+	local object = true
+	local strip:boolean
+	if object then
+		strip=false
+	else
+		strip=execArgs.strip
+	end
+	local phdrSize = object and 0 or 1
+	if object then
+		addShdr(
+			"",
+			0,
+			0,
+			-- 0,
+			0
+		)
+	end
+	
+	addSym("_start",16,start,1)
 	
 	addShdr(
 		".text",
 		1, --PROGBITS
 		7, --WRITE | ALLOC | EXEC
 		getProgramSize(),
-		64+#elf64Shdr*3
+		64+#elf64Shdr*5
 	)
 
+	
+	if object then
+		addShdr(
+			".rel",
+			9, --REL
+			0,
+			#rels*#elf64Rel,
+			64+#elf64Shdr*5+getProgramSize()+#elf64Sym*#syms
+		)
+		shdrs[#shdrs].sh_addr=0
+		addShdr(
+			".symtab",
+			2, --SYMTAB
+			0,
+			#elf64Sym*#syms,
+			64+#elf64Shdr*5+getProgramSize()
+		)
+		shdrs[#shdrs].sh_addr=0
+	end
+	
 	if not strip then
-		addShdr(".shstrtab",3, 0,0,64+(#elf64Shdr*(#shdrs+1))+getProgramSize()+#elf64Phdr)
+		addShdr(".strtab",3, 0,0,64+(#elf64Shdr*(#shdrs+1))+getProgramSize()+phdrSize*#elf64Phdr+#elf64Sym*#syms+#elf64Rel*#rels)
 		shdrs[#shdrs].sh_addr=0
 		shdrs[#shdrs].sh_size=nameLen
 	end
 	
 	local ph:elf64Phdr = {
-		1, --LOAD
-		7,
-		0,
-		addressOffset,
-		addressOffset,
-		getProgramSize()+paddingSize,
-		getProgramSize()+paddingSize,
-		0x1000
-	}
+			1, --LOAD
+			7,
+			0,
+			addressOffset,
+			addressOffset,
+			getProgramSize()+paddingSize,
+			getProgramSize()+paddingSize,
+			0x1000
+		}
+	
 
 
 	local header:elf64Ehdr = {
 		{0x7f,0x45,0x4c,0x46,2,1,1,0},
-		2,
+		object==true and 1 or 2,
 		243, --RISC-V
 		1,
-		64+addressOffset+#shdrs*#elf64Shdr+start,
-		64+getProgramSize()+#shdrs*#elf64Shdr,
+		object==true and 0 or 64+addressOffset+#shdrs*#elf64Shdr+start,
+		phdrSize > 0 and 64+getProgramSize()+#shdrs*#elf64Shdr or 0,
 		64,
 		4,
 		64,
-		56,
-		1,
+		phdrSize > 0 and 56 or 0,
+		phdrSize,
 		64,
 		#shdrs,
-		#shdrs-1,
+		strip==false and #shdrs-1 or 0,
 	}
 
 	
@@ -156,7 +255,17 @@ global function writeToFile(filename:string,program:sequence(uint8),start:uint64
 
 	C.fwrite(&program[1],1,#program,file)
 
-	C.fwrite(&ph,#elf64Phdr,1,file)
+	for i=1,<=#syms do
+		C.fwrite(&syms[i],1,#elf64Sym,file)
+	end
+	
+	for i=1,<=#rels do
+		C.fwrite(&rels[i],1,#elf64Rel,file)
+	end
+	
+	if not object then
+		C.fwrite(&ph,phdrSize,#elf64Phdr,file)
+	end
 
 	if not strip then
 		for k,v in pairs(names) do

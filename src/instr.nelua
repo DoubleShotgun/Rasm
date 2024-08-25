@@ -15,6 +15,24 @@ global instruction:hashmap(string,@record{
 	func7:uint8,
 })
 
+global function getArg(str:string):uint64
+	if str:match("^-?%d*$") then
+		return (@uint64)(tointeger(str))
+	elseif labels:has(str) then
+		if labels[str].length==-1 then
+			return labels[str].value
+		else
+			return (@uint64)(labels[str].value-getProgramSize())
+		end
+	elseif str:match("^%%") then
+		local label = str:sub(2,#str)
+		if labels:has(label) then
+			return (@uint64)(labels[label].length)
+		end
+	end
+	return 0
+end
+
 global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint64)
 	
 	local size:isize 
@@ -22,7 +40,7 @@ global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint64)
 	if instruction:has(mnemonic) then
 		switch instruction[mnemonic].type do
 		case instrType.n then
-			size = 0
+			--Size is 0
 		case instrType.u then
 			fallthrough
 		case instrType.uj then
@@ -43,20 +61,7 @@ global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint64)
 	for i=0,<3 do
 		local str = a[i+1]
 		if str=="" then break end
-		if str:match("^-?%d*$") then
-			args[i] = (@uint64)(tointeger(str))
-		elseif labels:has(str) then
-			if labels[str].length==-1 then
-				args[i] = labels[str].value
-			else
-				args[i] = (@uint64)(labels[str].value-getProgramSize())
-			end
-		elseif str:match("^%%") then
-			local label = str:sub(2,#str)
-			if labels:has(label) then
-				args[i] = (@uint64)(labels[label].length)
-			end
-		end
+		return getArg(str)
 	end
 	return size,args
 end

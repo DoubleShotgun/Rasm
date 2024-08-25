@@ -1,6 +1,6 @@
 require("string")
 require("arg")
-global usageStr = "Usage: "..arg[0]..[[ [d][s][o a.out] filein.asm
+global usageStr = "Usage: "..arg[0]..[[[d][s][o a.out] filein.asm
 '-' are optional.]]
 
 if #arg==0 then
@@ -17,6 +17,7 @@ require("math")
 
 require("common")
 require("argHandling")
+require("syntax")
 require("label")
 require("instr")
 require("base")
@@ -24,9 +25,9 @@ require("multiply")
 require("pseudo")
 require("elf")
 
-local curLabel:string
-local addressLabel:int64  
-local preAddressLabel:int64
+local preLabel:string
+local addressLabel:uint64  
+local preAddressLabel:uint64
 
 local file = io.open(filein)
 if not file:isopen() then
@@ -40,120 +41,226 @@ if execArgs.dump then
 	cfile = C.fopen("dump.bin","wb+")
 end
 
-local function parseString(str:string)
-	local escape=false
-	local retStr = ""
-	
-	for _,char in ipairs(str) do
-		if escape then
-			switch char do
-			case 34 then -- "
-				retStr = retStr.."\""
-			case 39 then -- '
-				retStr = retStr.."\'"
-			case 92 then -- \
-				retStr = retStr.."\\"
-			case 97 then -- a
-				retStr = retStr.."\a"
-			case 98 then -- b
-				retStr = retStr.."\b"
-			case 101 then -- e
-				retStr = retStr..string.char(0x1b)
-			case 110 then -- n
-				retStr = retStr.."\n"
-			case 114 then -- n
-				retStr = retStr.."\r"
-			case 116 then -- t
-				retStr = retStr.."\t"
-			else
-				print("Error: Invaild escape sequence")
-				os.exit(1)
-			end
-			escape=false
-		else
-			switch char do
-			case 92 then -- \
-				escape=true
-			case 39 then -- '
-				fallthrough
-			case 34 then -- "
-				return retStr
-			else
-				retStr = retStr..string.char(char)
-			end
+-- for line in file:lines() do
+-- 	if line:match("#") then continue end
+-- 	if line:match("%s*%S*:%s*$") then
+-- 	
+-- 	elseif line:match("%S+%s*=%s*%S+") then
+-- 		if line:match("[\"']") then
+-- 			local args = select(2,line:match("(%S+)%s*=%s*\"(.*)\""))
+-- 			local str = parseString(args[2])
+-- 
+-- 		else
+-- 			local args = select(2,line:match("%s*(%S*)%s*=%s*(.*)"))
+-- 			labels[args[1]] = {(@uint64)(tointeger(args[2])),-1}
+-- 		end
+-- 	elseif line:match("%S") then
+-- 	
+-- 		local _,b = line:match("%s*([^%s]*)%s*(.*)")
+-- 		local mnemonic = b[1]:lower()
+-- 		local length
+-- 		if instruction:has(mnemonic) then
+-- 			length = 4
+-- 		else
+-- 			local size,args = getArgs(mnemonic,b[2])
+-- 			length = #pseudoInstr[mnemonic].assemble(args)
+-- 		end
+-- 		addressLabel=addressLabel+length
+-- 	end 
+-- end
+
+local expects:[5]uint8
+expects[0]=#[Newline]# 
+expects[1]=#[Var]#
+expects[2]=#[EOF]#
+
+local function checkSyntax(syn:syntax)
+	if expects[0]==#[EOF]# or syn.type==#[Whitespace]# then return end
+	for i=0,<#expects do
+		if expects[i]==#[EOF]# then break end
+		
+		if syn.type == expects[i] then 
+			return 
 		end
-			
+		if syn.type == #[Comment]# and expects[i] == #[Newline]# then
+			return
+		end
 	end
-	return retStr
+	if syn.type == #[Newline]# then
+		rasmError("Unexpected Newline")
+	else
+		rasmError('"'..syn.str..'"'.." Unexpected Syntax")
+	end
 end
 
-for line in file:lines() do
-	if line:match("#") then continue end
-	if line:match("%s*%S*:%s*$") then
-	
-		local label:string = select(2,line:match("%s*(%S*):"))[1]
-		if curLabel~="" then
-			labels[curLabel] = {preAddressLabel,addressLabel-preAddressLabel}
+local function addLabel(name:string,value:uint64,isAddr:boolean)
+	if isAddr then
+		if preLabel~="" then
+			labels[preLabel].length = value-preAddressLabel
 		end
+		labels[name] = {value,0}
 		preAddressLabel = addressLabel
-		curLabel=label
-	elseif line:match("%S+%s*=%s*%S+") then
-		if line:match("[\"']") then
-			local args = select(2,line:match("(%S+)%s*=%s*\"(.*)\""))
-			local str = parseString(args[2])
-
-			for i=1,#str do
-				program[#program+1] = (@uint8)(str[i])
-			end
-			
-			local len = #str
-			if #str%2==1 then
-				len = len+1
-			end
-			
-			stringLen = stringLen+#str
-			labels[args[1]] = {addressLabel,len}
-			addressLabel=addressLabel+#str
-			
-			if #str%2==1 then
-				program[#program+1]=0
-				addressLabel=addressLabel+1
-			end
-		else
-			local args = select(2,line:match("%s*(%S*)%s*=%s*(.*)"))
-			labels[args[1]] = {(@uint64)(tointeger(args[2])),-1}
-		end
-	elseif line:match("%S") then
-	
-		local _,b = line:match("%s*([^%s]*)%s*(.*)")
-		local mnemonic = b[1]:lower()
-		local length
-		if instruction:has(mnemonic) then
-			length = 4
-		else
-			local size,args = getArgs(mnemonic,b[2])
-			length = #pseudoInstr[mnemonic].assemble(args)
-		end
-		addressLabel=addressLabel+length
-	end 
+		preLabel = name
+	else
+		labels[name] = {value,-1}
+	end
 end
 
-labels[curLabel] = {preAddressLabel,addressLabel-preAddressLabel}
+local lastVar:string
 
+local function parseVar(syn:syntax)
+	if instruction:has(syn.str) then
+		addressLabel=addressLabel+4
+		expects[0]=#[Newline]# 
+		expects[1]=#[Var]#
+		expects[2]=#[EOF]#
+		repeat
+			syn = Parse(file)
+		until syn.type== #[Newline]# or syn.type== #[EOF]#
+	
+	elseif pseudoInstr:has(syn.str) then
+		local mnemonic = syn.str
+		local args:sequence(uint64)
+		
+		syn = Parse(file)
+		expects[0]=#[Var]#
+		expects[1]=#[Number]#
+		expects[2]=#[EOF]#
+		local stringArg:string
+		while syn.type ~= #[Newline]# and syn.type ~= #[EOF]# do
+			checkSyntax(syn)
+			if syn.type == #[Operation]# and syn.str=="," then
+				expects[0]=#[Var]#
+				expects[1]=#[Number]#
+				expects[2]=#[Operation]#
+				expects[3]=#[EOF]#
+				 
+			elseif syn.type == #[Operation]# and syn.str=="%" and stringArg=="" then
+				stringArg = stringArg..syn.str
+				expects[0]=#[Var]#
+				expects[1]=#[EOF]#
+				
+			elseif syn.type == #[Operation]# then rasmError("Expected ',' Not '"..syn.str.."''")
+			elseif syn.type == #[Var]# or syn.type == #[Number]# then
+				expects[0]=#[Operation]#
+				expects[1]=#[Newline]#
+				expects[2]=#[EOF]#
+				args[#args+1] = getArg(stringArg..syn.str)
+				stringArg=""
+			end
+			syn = Parse(file)
+		end
+		
+		expects[0]=#[Newline]# 
+		expects[1]=#[Var]#
+		expects[2]=#[EOF]#
+
+		if pseudoInstr[mnemonic].argc~=0xff then
+			if pseudoInstr[mnemonic].argc>#args then
+				rasmError("Too Few Operand")
+			elseif pseudoInstr[mnemonic].argc<#args then
+				rasmError("Too Many Operand")
+			end
+		end
+		
+		local length = #pseudoInstr[mnemonic].assemble(args)
+		addressLabel=addressLabel+length
+	end
+end
+
+while true do
+	local syn = Parse(file)
+	if syn.type == #[EOF]# then
+		break
+	end
+
+	checkSyntax(syn)
+	switch syn.type do
+	case #[Comment]# then
+		fallthrough
+	case #[Whitespace]# then
+		continue
+	case #[Newline]# then
+		expects[0]=#[Newline]# 
+		expects[1]=#[Var]#
+		expects[2]=#[EOF]#
+		
+	case #[Operation]# then
+		expects[0]=#[Operation]#
+		expects[1]=#[Number]#
+		expects[2]=#[String]#
+		expects[3]=#[EOF]#
+		
+		if syn.str == "=" then
+			expects[1]=#[Number]#
+			expects[2]=#[String]#
+			expects[3]=#[EOF]#
+			repeat
+				syn = Parse(file)
+				checkSyntax(syn)
+			until syn.type ~= #[Whitespace]#
+			if syn.type == #[Number]# then
+				addLabel(lastVar,(@uint64)(tointeger(syn.str)),false)
+			else
+				local str = parseString(syn.str)
+				for i=1,#str do
+					program[#program+1] = (@uint8)(str[i])
+				end
+				
+				stringLen = stringLen+#str
+				addLabel(lastVar,addressLabel,true)
+				addressLabel=addressLabel+#str
+				
+				if #str%2==1 then
+					program[#program+1]=0
+					addressLabel=addressLabel+1
+				end
+				
+			end
+			
+			expects[0]=#[Newline]#
+			expects[1]=#[EOF]#
+		elseif syn.str == ":" then
+			addLabel(lastVar,addressLabel,true)
+			
+			expects[0]=#[Newline]#
+			expects[1]=#[EOF]#
+		else
+		end
+	case #[String]# then
+	case #[Number]# then
+		expects[0]=#[Operation]#
+		expects[1]=#[Number]#
+		expects[2]=#[Newline]#
+		expects[3]=#[EOF]#
+		
+	case #[Var]# then
+		expects[0]=#[Operation]#
+		expects[1]=#[Var]#
+		expects[2]=#[EOF]#
+
+		parseVar(syn)
+
+		lastVar = syn.str
+	end
+end
+labels[preLabel].length = addressLabel-preAddressLabel
 
 if not labels:has("_start") then
-	print("Error: failed to find '_start' label")
+	print(filein..": Error".."failed to find '_start' label")
 	os.exit(1)
 end
 
-global curLine = 1
+os.exit()
+
 file:seek("set")
 
 local function addInstrToProgram(instr:[4]uint8)
 	for i=0,3 do
-		program[#program+1] = instr[i]
+		-- program[#program+1] = instr[i]
 	end
 end
+
 
 
 for line in file:lines() do
@@ -164,6 +271,11 @@ for line in file:lines() do
 		local mnemonic = b[1]:lower()
 		local size,args = getArgs(mnemonic,b[2])
 		
+		local obj=true
+		if mnemonic=="call" and not labels:has(b[2]) and obj then
+			addElfRel(b[2],getProgramSize())
+			addElfRel("",0)
+		end
 		if instruction:has(mnemonic) then
 			addInstrToProgram(getInstr(mnemonic,args))
 		elseif pseudoInstr:has(mnemonic) then
@@ -186,5 +298,5 @@ if execArgs.dump then
 	C.fclose(cfile)
 end
 
-writeToFile(fileout,program,labels["_start"].value,execArgs.strip)
-io.popen("chmod +x "..fileout)
+writeToFile(fileout,program,labels["_start"].value)
+io.popen("chmod +x "..fileout.." 2> /dev/null")

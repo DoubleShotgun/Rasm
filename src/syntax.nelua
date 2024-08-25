@@ -1,0 +1,95 @@
+## EOF = 255
+## Comment = 0
+## Newline = 1	
+## Whitespace = 2
+## Operation = 3
+## String = 4
+## Number = 5
+## Var = 6
+## Call = 7
+
+
+global syntax = @record {
+	str:string,
+	type:uint8,
+}
+
+global function Parse(file:filestream):syntax
+	local ret:syntax
+	local c = file:read(1)
+	if #file:read(1)==0 then
+		ret.str = "EOF"
+		ret.type=#[EOF]#
+		return ret
+	end
+	file:seek("cur",-1)
+	
+	if c~="\"" then
+		ret.str=c
+	end
+	if c:match(";") then
+		ret.type=#[Comment]#
+		c = file:read(1)
+		while #c~=0 and c~="\n" do
+			ret.str = ret.str..c
+			c = file:read(1)
+		end
+		file:seek("cur",-1)
+	elseif c == "\n" then
+		ret.type=#[Newline]#
+		curLine=curLine+1
+		
+	elseif c:match("%s") then
+		ret.type=#[Whitespace]#
+		c = file:read(1)
+		while c:match("%s^\n") do
+			ret.str = ret.str..c
+			c = file:read(1)
+		end
+		file:seek("cur",-1)
+		
+	elseif c:match("[:=%+%-%*%%#,]") then
+		ret.type=#[Operation]#
+		
+	elseif c:match("['\"]") then
+		ret.type=#[String]#
+		c = file:read(1)
+		while not c:match("['\"]") do
+			ret.str = ret.str..c
+			if c == "\\" then
+				c = file:read(1)
+				ret.str = ret.str..c
+			end
+			c = file:read(1)
+		end
+		
+	elseif c=="(" or c==")" then
+		ret.type=#[Call]#
+		
+	elseif c:match("%d") then
+		ret.type=#[Number]#
+		c = file:read(1)
+		while c:match("%d") do
+			ret.str = ret.str..c
+			c = file:read(1)
+		end
+		file:seek("cur",-1)
+		
+	elseif c:match("[%w_]") then
+		ret.type=#[Var]#
+		c = file:read(1)
+		while c:match("[%w_]") do
+			ret.str = ret.str..c
+			c = file:read(1)
+		end
+		file:seek("cur",-1)
+		
+	end
+
+	if ret.type == "" then
+		rasmError("Unknown Syntax"..c,1)
+	end
+	
+	return ret
+end
+
