@@ -66,7 +66,7 @@ global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint64)
 	return size,args
 end
 
-global function getInstr(mnemonic:string,args:[3]uint64):[4]uint8
+global function getInstr(mnemonic:string,args:sequence(uint64)):[4]uint8
 	if not instruction:has(mnemonic) then
 		print("Error: no such mnemonic")
 		os.exit(1)
@@ -80,34 +80,34 @@ global function getInstr(mnemonic:string,args:[3]uint64):[4]uint8
 	case instrType.r then
 		fallthrough
 	case instrType.i then
-		instr = instr | (@uint32)(args[0]<<7)
-		instr = instr | (@uint32)(args[1]<<15)
-		instr = instr | (@uint32)(args[2]<<20)
+		instr = instr | (@uint32)(args[1]<<7)
+		instr = instr | (@uint32)(args[2]<<15)
+		instr = instr | (@uint32)(args[3]<<20)
 		instr = instr | ((@uint32)(curInstr.func3)<<12)
 		instr = instr | ((@uint32)(curInstr.func7)<<25)
 	case instrType.s then
-		instr = instr | (@uint32)(args[0]<<15)
-		instr = instr | (@uint32)(args[1]<<20)
-		instr = instr | (@uint32)((args[2]&0x1f)<<7)
-	  instr = instr | (@uint32)((args[2]>>5)<<25)
+		instr = instr | (@uint32)(args[1]<<15)
+		instr = instr | (@uint32)(args[2]<<20)
+		instr = instr | (@uint32)((args[3]&0x1f)<<7)
+	  instr = instr | (@uint32)((args[3]>>5)<<25)
 		instr = instr | ((@uint32)(curInstr.func3)<<12)
 	case instrType.sb then
-		instr = instr | (@uint32)(args[0]<<15)
-		instr = instr | (@uint32)(args[1]<<20)
-		instr = instr | (@uint32)((args[2]&0x001e)<<7) 
-	  instr = instr | (@uint32)((args[2]&0x07e0)<<20)
-		instr = instr | (@uint32)((args[2]&0x0800)>>4)
-		instr = instr | (@uint32)((args[2]&0x1000)<<19)
+		instr = instr | (@uint32)(args[1]<<15)
+		instr = instr | (@uint32)(args[2]<<20)
+		instr = instr | (@uint32)((args[3]&0x001e)<<7) 
+	  instr = instr | (@uint32)((args[3]&0x07e0)<<20)
+		instr = instr | (@uint32)((args[3]&0x0800)>>4)
+		instr = instr | (@uint32)((args[3]&0x1000)<<19)
 		instr = instr | ((@uint32)(curInstr.func3)<<12)
 	case instrType.u then
-		instr = instr | (@uint32)(args[0]<<7)
-		instr = instr | (@uint32)(args[1]<<12)
+		instr = instr | (@uint32)(args[1]<<7)
+		instr = instr | (@uint32)(args[2]<<12)
 	case instrType.uj then
-		instr = instr | (@uint32)(args[0]<<7)
-		instr = instr | (@uint32)((args[1]&0b11111111110)<<20) -- 10:1
-		instr = instr | (@uint32)(((args[1]>>11)&1)<<20) -- 11
-		instr = instr | (@uint32)(((args[1]>>12)&0b011111111)<<12) -- 19:12
-		instr = instr | (@uint32)(((args[1]>>20))<<31) -- 20
+		instr = instr | (@uint32)(args[1]<<7)
+		instr = instr | (@uint32)((args[2]&0b11111111110)<<20) -- 10:1
+		instr = instr | (@uint32)(((args[2]>>11)&1)<<20) -- 11
+		instr = instr | (@uint32)(((args[2]>>12)&0b011111111)<<12) -- 19:12
+		instr = instr | (@uint32)(((args[2]>>20))<<31) -- 20
 	end
 	return {
 		(@uint8)(instr),

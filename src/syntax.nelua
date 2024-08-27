@@ -50,6 +50,18 @@ global function Parse(file:filestream):syntax
 		
 	elseif c:match("[:=%+%-%*%%#,]") then
 		ret.type=#[Operation]#
+		if c == "-" then
+			c = file:read(1)
+			if c:match("%d") then
+				ret.type=#[Number]#
+				ret.str = ret.str..c
+				c = file:read(1)
+				while c:match("%d") do
+					ret.str = ret.str..c
+					c = file:read(1)
+				end
+			end
+		end
 		
 	elseif c:match("['\"]") then
 		ret.type=#[String]#
@@ -92,4 +104,3 @@ global function Parse(file:filestream):syntax
 	
 	return ret
 end
-

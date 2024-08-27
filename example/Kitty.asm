@@ -1,9 +1,9 @@
-write = 64 
 exit = 93
+write = 64
 nanosleep = 101
 
  ; original art by Joan Stark (https://oldcompcz.github.io/jgs/joan_stark/)
-
+ 
 cat1 = "       \\    /\\\n        )  ( \')\n       (  /  )\njgs     \\(__)|\n"
 cat2 = "      \\     /\\\n       |   ( \')\n       |  /  )\njgs     \\(__)|\n"
 cat3 = "            /\\\n     _     ( \')\n      \\_  /  )\njgs     \\(__)|\n"
@@ -17,7 +17,7 @@ cat10 = "      \\     /\\\n       |   ( \')\n       |  /  )\njgs     \\(__)|\n"
 cat11 = "       (    /\\\n        )  ( \')\n       (  /  )\njgs     \\(__)|\n"
 cat12 = "        |   /\\\n        )  ( \')\n       (  /  )\njgs     \\(__)|\n"
 resetCursor = "\r\e[4;A"
-exitCursor = "\e[4;B"
+exitCursor = "\r\e[4;B"
 
 sleep:
 	li a7,nanosleep
@@ -26,12 +26,12 @@ sleep:
 	ecall
 	ret
 print:
+	li a7,write
 	li a2,%cat1
 	la a1,cat1
 	mul a0,a0,a2
 	add a1,a1,a0
 	
-	li a7,write
 	li a0,0
 	ecall
 	
@@ -41,24 +41,21 @@ print:
 	li a2,%resetCursor
 	ecall
 	ret
-
 	
 _start:
 	li s0,0
-	li s1,42; 36+6
+	li s1,30 ;12*2+6
 	li s2,12
 loop:
 	mv a0,s0
+	remu a0,a0,s2
 	call print
 	call sleep
-	
 	addi s0,s0,1
-	remu s0,s0,s2
-	addi s1,s1,-1
-	bnez s1,loop
+	bne s0,s1,loop
 
 	li a7,write
-	li a0,1
+	li a0,0
 	la a1,exitCursor
 	li a2,%exitCursor
 	ecall
@@ -66,7 +63,6 @@ loop:
 	li a7,exit
 	li a0,0
 	ecall
-
 time:
 	dd 0
-	dd 100000000 ; 0.1
+	dd 100000000 ;0.25

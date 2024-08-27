@@ -4,7 +4,7 @@ global filein:string
 global program:sequence(uint8)
 global stringLen:uint64
 
-global function getProgramSize() <inline>
+global function getProgramSize():int64 <inline>
 	return #program
 end
 

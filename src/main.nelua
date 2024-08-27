@@ -25,6 +25,9 @@ require("multiply")
 require("pseudo")
 require("elf")
 
+-- print((@uint32)((@uint64)(-1)<<20))
+-- os.exit()
+
 local preLabel:string
 local addressLabel:uint64  
 local preAddressLabel:uint64
@@ -94,6 +97,7 @@ local function checkSyntax(syn:syntax)
 end
 
 local function addLabel(name:string,value:uint64,isAddr:boolean)
+	if labels:has(name) then rasmError("Label already exist") end
 	if isAddr then
 		if preLabel~="" then
 			labels[preLabel].length = value-preAddressLabel
@@ -114,10 +118,13 @@ local function parseVar(syn:syntax)
 		expects[0]=#[Newline]# 
 		expects[1]=#[Var]#
 		expects[2]=#[EOF]#
+		
+		--TODO: Check the length of the argument
+		
 		repeat
 			syn = Parse(file)
 		until syn.type== #[Newline]# or syn.type== #[EOF]#
-	
+		
 	elseif pseudoInstr:has(syn.str) then
 		local mnemonic = syn.str
 		local args:sequence(uint64)
@@ -251,50 +258,60 @@ if not labels:has("_start") then
 	os.exit(1)
 end
 
-os.exit()
+for k,v in pairs(labels) do
+	print(k,v.value)
+end
 
 file:seek("set")
 
-local function addInstrToProgram(instr:[4]uint8)
+local function addInstrToProgram(instr:[4]uint8,mnemonic:string)
 	for i=0,3 do
-		-- program[#program+1] = instr[i]
+		program[#program+1] = instr[i]
 	end
 end
 
-
-
-for line in file:lines() do
-	if line:match("^%s*#") then continue end
+repeat
+	local syn = Parse(file)
 	
-	if line:match("%S") then
-		local _,b = line:match("%s*([^%s]*)%s*(.*)")
-		local mnemonic = b[1]:lower()
-		local size,args = getArgs(mnemonic,b[2])
+	if instruction:has(syn.str) or pseudoInstr:has(syn.str) then
+		local mnemonic = syn.str
+		local args:sequence(uint64)
+		local i=1
+		repeat
+			syn = Parse(file)
+			if syn.type==#[Operation]# and syn.str=="%" then
+				syn = Parse(file)
+				args[i] = getArg("%"..syn.str)
+				i=i+1
+				syn = Parse(file)
+			end
+			if syn.type==#[Number]# or syn.type==#[Var]# then
+				if syn.type == #[Var]# and not labels:has(syn.str) then
+					rasmError("No label called "..syn.str)
+				end
+				args[i] = getArg(syn.str)
+				i=i+1
+			end
+		until syn.type == #[Newline]# or syn.type == #[EOF]# or i==4
 		
-		local obj=true
-		if mnemonic=="call" and not labels:has(b[2]) and obj then
-			addElfRel(b[2],getProgramSize())
-			addElfRel("",0)
-		end
+		
 		if instruction:has(mnemonic) then
-			addInstrToProgram(getInstr(mnemonic,args))
-		elseif pseudoInstr:has(mnemonic) then
+			addInstrToProgram(getInstr(mnemonic,args),mnemonic)
+		else
 			local bytes = pseudoInstr[mnemonic].assemble(args)
 			for i=1,#bytes do
 				program[#program+1] = bytes[i]
 			end
 		end
 	end
-	
-	curLine = curLine+1
-end
+until syn.type == #[EOF]#
 
 file:close()
 
 if execArgs.dump then
 	for _,v in ipairs(program) do
 		C.fwrite(&v,1,1,cfile)
-	end
+	end   
 	C.fclose(cfile)
 end
 
