@@ -44,41 +44,15 @@ if execArgs.dump then
 	cfile = C.fopen("dump.bin","wb+")
 end
 
--- for line in file:lines() do
--- 	if line:match("#") then continue end
--- 	if line:match("%s*%S*:%s*$") then
--- 	
--- 	elseif line:match("%S+%s*=%s*%S+") then
--- 		if line:match("[\"']") then
--- 			local args = select(2,line:match("(%S+)%s*=%s*\"(.*)\""))
--- 			local str = parseString(args[2])
--- 
--- 		else
--- 			local args = select(2,line:match("%s*(%S*)%s*=%s*(.*)"))
--- 			labels[args[1]] = {(@uint64)(tointeger(args[2])),-1}
--- 		end
--- 	elseif line:match("%S") then
--- 	
--- 		local _,b = line:match("%s*([^%s]*)%s*(.*)")
--- 		local mnemonic = b[1]:lower()
--- 		local length
--- 		if instruction:has(mnemonic) then
--- 			length = 4
--- 		else
--- 			local size,args = getArgs(mnemonic,b[2])
--- 			length = #pseudoInstr[mnemonic].assemble(args)
--- 		end
--- 		addressLabel=addressLabel+length
--- 	end 
--- end
-
 local expects:[5]uint8
-expects[0]=#[Newline]# 
-expects[1]=#[Var]#
-expects[2]=#[EOF]#
+expects={
+	#[Newline]#,
+	#[Var]#,
+	#[EOF]#
+}
 
 local function checkSyntax(syn:syntax)
-	if expects[0]==#[EOF]# or syn.type==#[Whitespace]# then return end
+	if expects[0]==#[EOF]# or syn.type==#[Whitespace]# or syn.type==#[EOF]# then return end
 	for i=0,<#expects do
 		if expects[i]==#[EOF]# then break end
 		
@@ -110,20 +84,78 @@ local function addLabel(name:string,value:uint64,isAddr:boolean)
 	end
 end
 
+local function getCallArgs()
+	local syn:syntax
+	if syn.type == #[Call]# then
+		repeat
+			syn = Parse(file)
+		until syn.type == #[Call]#
+		addressLabel=addressLabel+4
+	end
+end
+
 local lastVar:string
 
 local function parseVar(syn:syntax)
 	if instruction:has(syn.str) then
 		addressLabel=addressLabel+4
-		expects[0]=#[Newline]# 
-		expects[1]=#[Var]#
-		expects[2]=#[EOF]#
+		expects={
+			#[Newline]#,
+			#[Var]#,
+			#[Number]#,
+			#[EOF]#
+		}
 		
-		--TODO: Check the length of the argument
-		
+		local size:uint8
+		switch instruction[syn.str].type do
+		case instrType.n then
+			-- size = 0
+		case instrType.u then
+			fallthrough
+		case instrType.uj then
+			size = 2
+		case instrType.s then
+			fallthrough
+		case instrType.sb then
+			fallthrough
+		case instrType.r then
+			fallthrough
+		case instrType.i then
+			size = 3
+		end
+		local argc:uint8
 		repeat
 			syn = Parse(file)
-		until syn.type== #[Newline]# or syn.type== #[EOF]#
+			checkSyntax(syn)
+			if syn.type == #[Operation]# and syn.str=="," then
+				expects[0]=#[Var]#
+				expects[1]=#[Number]#
+				expects[2]=#[Operation]#
+				expects[3]=#[EOF]#
+				 
+			elseif syn.type == #[Operation]# and syn.str=="%" then
+				expects[0]=#[Var]#
+				expects[1]=#[EOF]#
+				
+			elseif syn.type == #[Operation]# then rasmError("Expected ',' Not '"..syn.str.."''")
+			elseif syn.type == #[Var]# or syn.type == #[Number]# then
+				expects[0]=#[Operation]#
+				expects[1]=#[Newline]#
+				expects[2]=#[EOF]#
+				argc=argc+1
+			end
+		until syn.type== #[Newline]# or syn.type== #[EOF]# 
+		
+		if size>argc then
+			rasmError("Too Few Operand")
+		elseif size<argc then
+			rasmError("Too Many Operand")
+		end
+		expects={
+			#[Newline]#,
+			#[Var]#,
+			#[EOF]#
+		}
 		
 	elseif pseudoInstr:has(syn.str) then
 		local mnemonic = syn.str
@@ -188,9 +220,11 @@ while true do
 	case #[Whitespace]# then
 		continue
 	case #[Newline]# then
-		expects[0]=#[Newline]# 
-		expects[1]=#[Var]#
-		expects[2]=#[EOF]#
+		expects={
+			#[Newline]#,
+			#[Var]#,
+			#[EOF]#
+		}
 		
 	case #[Operation]# then
 		expects[0]=#[Operation]#
@@ -234,6 +268,13 @@ while true do
 			expects[1]=#[EOF]#
 		else
 		end
+	case #[Call]# then
+		syn = Parse(file)
+		addressLabel = addressLabel + 4
+		expects={
+			#[Newline]#,
+			#[EOF]#
+		}
 	case #[String]# then
 	case #[Number]# then
 		expects[0]=#[Operation]#
@@ -242,10 +283,12 @@ while true do
 		expects[3]=#[EOF]#
 		
 	case #[Var]# then
-		expects[0]=#[Operation]#
-		expects[1]=#[Var]#
-		expects[2]=#[EOF]#
-
+		expects={
+			#[Operation]#,
+			#[Call]#,
+			#[Var]#,
+			#[EOF]#,
+		}
 		parseVar(syn)
 
 		lastVar = syn.str
@@ -259,12 +302,12 @@ if not labels:has("_start") then
 end
 
 for k,v in pairs(labels) do
-	print(k,v.value)
+	--print(k,v.value)
 end
 
 file:seek("set")
 
-local function addInstrToProgram(instr:[4]uint8,mnemonic:string)
+local function addInstrToProgram(instr:[4]uint8)
 	for i=0,3 do
 		program[#program+1] = instr[i]
 	end
@@ -272,10 +315,10 @@ end
 
 repeat
 	local syn = Parse(file)
+	local args:sequence(uint64)
 	
 	if instruction:has(syn.str) or pseudoInstr:has(syn.str) then
 		local mnemonic = syn.str
-		local args:sequence(uint64)
 		local i=1
 		repeat
 			syn = Parse(file)
@@ -296,12 +339,26 @@ repeat
 		
 		
 		if instruction:has(mnemonic) then
-			addInstrToProgram(getInstr(mnemonic,args),mnemonic)
+			addInstrToProgram(getInstr(mnemonic,args))
 		else
 			local bytes = pseudoInstr[mnemonic].assemble(args)
 			for i=1,#bytes do
 				program[#program+1] = bytes[i]
 			end
+		end
+	end
+	
+	if labels:has(syn.str) and labels[syn.str].length~=-1 then
+		local label = syn.str
+		
+		repeat
+			syn = Parse(file)
+		until syn.type~=#[Whitespace]#
+		
+		if syn.type == #[Call]# then
+			getCallArgs()
+			args={1,getArg(label)}
+			addInstrToProgram(getInstr("jal",args))
 		end
 	end
 until syn.type == #[EOF]#
@@ -317,3 +374,8 @@ end
 
 writeToFile(fileout,program,labels["_start"].value)
 io.popen("chmod +x "..fileout.." 2> /dev/null")
+
+
+
+
+

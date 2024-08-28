@@ -19,9 +19,18 @@ pseudoInstr["li"] = {
 		if args[2]<0x800 then
 			return getInstr("addi",{args[1],0,args[2]})
 		else
+			if args[2]&0xfff==0 then
+				return getInstr("lui",{args[1],args[2]>>12})
+			end
+			local upper = args[2]>>12
+			if args[2]&0xfff >= 0x800 then
+				upper = upper+1
+			end
 			return concat(
-				getInstr("lui",{args[1],args[2]>>11}),
-				getInstr("addiw",{args[1],args[1],args[2]})
+				getInstr("lui",{args[1],upper}),
+				execArgs.bit32 == true and
+					getInstr("addi", {args[1],args[1],args[2]}) or
+					getInstr("addiw",{args[1],args[1],args[2]})
 			)
 		end
 	end

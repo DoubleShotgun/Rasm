@@ -33,38 +33,6 @@ global function getArg(str:string):uint64
 	return 0
 end
 
-global function getArgs(mnemonic:string,argsStr:string):(isize,[3]uint64)
-	
-	local size:isize 
-	local args:[3]uint64
-	if instruction:has(mnemonic) then
-		switch instruction[mnemonic].type do
-		case instrType.n then
-			--Size is 0
-		case instrType.u then
-			fallthrough
-		case instrType.uj then
-			size = 2
-		case instrType.s then
-			fallthrough
-		case instrType.sb then
-			fallthrough
-		case instrType.r then
-			fallthrough
-		case instrType.i then
-			size = 3
-		end
-	end
-	
-	local _,a = argsStr:match("%s*([-%%_%w%d]*)[,%s]*([-%%_%w%d]*)[,%s]*([-%%_%w%d]*)")
-	
-	for i=0,<3 do
-		local str = a[i+1]
-		if str=="" then break end
-		return getArg(str)
-	end
-	return size,args
-end
 
 global function getInstr(mnemonic:string,args:sequence(uint64)):[4]uint8
 	if not instruction:has(mnemonic) then

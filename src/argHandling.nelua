@@ -3,7 +3,8 @@ global fileout:string
 global execPath = arg[0]
 global execArgs = (@record{
 	dump:boolean,
-	strip:boolean
+	strip:boolean,
+	bit32:boolean
 })({ -- Default Options
 	strip=true
 })
@@ -27,6 +28,10 @@ opt[string.byte("d")] = {
 opt[string.byte("s")] = {
 	optType.bool,
 	&execArgs.strip
+}
+opt[string.byte("3")] = {
+	optType.bool,
+	&execArgs.bit32
 }
 opt[string.byte("o")] = {
 	optType.fileout,
