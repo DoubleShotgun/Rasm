@@ -1,3 +1,4 @@
+global temp=false
 require("string")
 require("arg")
 global usageStr = "Usage: "..arg[0]..[[[d][s][o a.out] filein.asm
@@ -63,6 +64,10 @@ local function checkSyntax(syn:syntax)
 			return
 		end
 	end
+	-- print("\nExpected:")
+	-- for i=0,<5 do
+	-- 	print(expects[i])
+	-- end
 	if syn.type == #[Newline]# then
 		rasmError("Unexpected Newline")
 	else
@@ -84,19 +89,41 @@ local function addLabel(name:string,value:uint64,isAddr:boolean)
 	end
 end
 
-local function getCallArgs()
+local function getCallArgs():(sequence(string))
+	--TODO: Skippable args
 	local syn:syntax
-	if syn.type == #[Call]# then
-		repeat
-			syn = Parse(file)
-		until syn.type == #[Call]#
-		addressLabel=addressLabel+4
-	end
+	expects={#[Var]#,#[Number]#,#[Call]#,#[EOF]#}
+	local stringArg:string
+	local args:sequence(string)	
+	repeat
+		syn = Parse(file)
+		checkSyntax(syn)
+		if syn.type == #[Operation]# and syn.str=="," then
+			expects[0]=#[Var]#
+			expects[1]=#[Number]#
+			expects[2]=#[Operation]#
+			expects[3]=#[EOF]#
+			 
+		elseif syn.type == #[Operation]# and syn.str=="%" and stringArg=="" then
+			stringArg = stringArg..syn.str
+			expects[0]=#[Var]#
+			expects[1]=#[EOF]#
+			
+		elseif syn.type == #[Operation]# then rasmError("Expected ',' Not '"..syn.str.."''")
+		elseif syn.type == #[Var]# or syn.type == #[Number]# then
+			expects[0]=#[Operation]#
+			expects[1]=#[Call]#
+			expects[2]=#[EOF]#
+			args[#args+1] = stringArg..syn.str
+			stringArg=""
+		end
+	until syn.type == #[Call]# or syn.type == #[EOF]#
+	return args
 end
 
 local lastVar:string
 
-local function parseVar(syn:syntax)
+local function parseVar(syn:syntax):boolean
 	if instruction:has(syn.str) then
 		addressLabel=addressLabel+4
 		expects={
@@ -156,6 +183,7 @@ local function parseVar(syn:syntax)
 			#[Var]#,
 			#[EOF]#
 		}
+	 	return syn.type==#[EOF]#
 		
 	elseif pseudoInstr:has(syn.str) then
 		local mnemonic = syn.str
@@ -204,7 +232,9 @@ local function parseVar(syn:syntax)
 		
 		local length = #pseudoInstr[mnemonic].assemble(args)
 		addressLabel=addressLabel+length
+	 	return syn.type==#[EOF]#
 	end
+	return false
 end
 
 while true do
@@ -212,7 +242,6 @@ while true do
 	if syn.type == #[EOF]# then
 		break
 	end
-
 	checkSyntax(syn)
 	switch syn.type do
 	case #[Comment]# then
@@ -269,8 +298,7 @@ while true do
 		else
 		end
 	case #[Call]# then
-		syn = Parse(file)
-		addressLabel = addressLabel + 4
+		addressLabel = addressLabel + #getCallArgs()*4+4
 		expects={
 			#[Newline]#,
 			#[EOF]#
@@ -289,7 +317,9 @@ while true do
 			#[Var]#,
 			#[EOF]#,
 		}
-		parseVar(syn)
+		if parseVar(syn) then
+			break
+		end
 
 		lastVar = syn.str
 	end
@@ -297,15 +327,12 @@ end
 labels[preLabel].length = addressLabel-preAddressLabel
 
 if not labels:has("_start") then
-	print(filein..": Error".."failed to find '_start' label")
+	print(filein..": Error: ".."failed to find '_start' label")
 	os.exit(1)
 end
 
-for k,v in pairs(labels) do
-	--print(k,v.value)
-end
-
 file:seek("set")
+curLine = 1
 
 local function addInstrToProgram(instr:[4]uint8)
 	for i=0,3 do
@@ -335,8 +362,7 @@ repeat
 				args[i] = getArg(syn.str)
 				i=i+1
 			end
-		until syn.type == #[Newline]# or syn.type == #[EOF]# or i==4
-		
+		until syn.type == #[Newline]# or syn.type == #[EOF]#
 		
 		if instruction:has(mnemonic) then
 			addInstrToProgram(getInstr(mnemonic,args))
@@ -356,7 +382,21 @@ repeat
 		until syn.type~=#[Whitespace]#
 		
 		if syn.type == #[Call]# then
-			getCallArgs()
+			local strs = getCallArgs()
+			for i=1,#strs do
+				if strs[i]:match("^-?%d*$") or strs[i]:match("^%%") or 
+				(labels:has(strs[i]) and labels[strs[i]].length==-1) then
+					local bytes = pseudoInstr["li"].assemble({9+i,getArg(strs[i])})
+					for i=1,#bytes do
+						program[#program+1] = bytes[i]
+					end
+				else
+					local bytes = pseudoInstr["la"].assemble({9+i,getArg(strs[i])})
+					for i=1,#bytes do
+						program[#program+1] = bytes[i]
+					end
+				end
+			end
 			args={1,getArg(label)}
 			addInstrToProgram(getInstr("jal",args))
 		end
@@ -374,7 +414,6 @@ end
 
 writeToFile(fileout,program,labels["_start"].value)
 io.popen("chmod +x "..fileout.." 2> /dev/null")
-
 
 
 

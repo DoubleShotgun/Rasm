@@ -8,9 +8,13 @@ global function getProgramSize():int64 <inline>
 	return #program
 end
 
-global function rasmError(str:string,code:uint8)
+global function rasmError(str:string,code:facultative(uint8))
 	io.stderr:write(filein..":"..curLine..": Error "..str.."\n")
-	os.exit(code)
+	## if code.type.is_niltype then
+		os.exit(1)
+  ## else
+		os.exit(code)
+  ## end
 end
 
 global function parseString(str:string)

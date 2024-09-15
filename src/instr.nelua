@@ -18,6 +18,8 @@ global instruction:hashmap(string,@record{
 global function getArg(str:string):uint64
 	if str:match("^-?%d*$") then
 		return (@uint64)(tointeger(str))
+	elseif str:match("^0x?[%da-fA-F]*$") then
+		return (@uint64)(tointeger(str))
 	elseif labels:has(str) then
 		if labels[str].length==-1 then
 			return labels[str].value
@@ -39,6 +41,8 @@ global function getInstr(mnemonic:string,args:sequence(uint64)):[4]uint8
 		print("Error: no such mnemonic")
 		os.exit(1)
 	end
+
+	--TODO: Warn user about imm max value
 	
 	local curInstr = instruction[mnemonic]
 	local instr:uint32 = curInstr.opcode

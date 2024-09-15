@@ -167,44 +167,54 @@ pseudoInstr["nop"] = {
 pseudoInstr["db"] = {
 	infiniteSize,
 	function(args:sequence(uint64)):sequence(uint8)
-		return {args[1]&0xff}
+		local ret:sequence(uint8)
+		for _,v in ipairs(args) do
+			ret[#ret+1]=v&0xff
+		end
+		return ret
 	end
 }
 
 pseudoInstr["dh"] = {
 	infiniteSize,
 	function(args:sequence(uint64)):sequence(uint8)
-		return {
-			args[1]&0xff,
-			(args[1]>>8)&0xff
-		}
+		local ret:sequence(uint8)
+		for _,v in ipairs(args) do
+			ret[#ret+1]=v&0xff
+			ret[#ret+1]=(v>>8)&0xff
+		end
+		return ret
 	end
 }
 
 pseudoInstr["dw"] = {
 	infiniteSize,
 	function(args:sequence(uint64)):sequence(uint8)
-		return {
-			args[1]&0xff,
-			(args[1]>>8)&0xff,
-			(args[1]>>16)&0xff,
-			(args[1]>>24)&0xff
-		}
+		local ret:sequence(uint8)
+		for _,v in ipairs(args) do
+			ret[#ret+1]=v&0xff
+			ret[#ret+1]=(v>>8)&0xff
+			ret[#ret+1]=(v>>16)&0xff
+			ret[#ret+1]=(v>>24)&0xff
+		end
+		return ret
 	end
 }
 
 pseudoInstr["dd"] = {
 	infiniteSize,
 	function(args:sequence(uint64)):sequence(uint8)
-		return {
-			args[1]&0xff,
-			(args[1]>>8)&0xff,
-			(args[1]>>16)&0xff,
-			(args[1]>>24)&0xff,
-			(args[1]>>32)&0xff,
-			(args[1]>>40)&0xff,
-			(args[1]>>48)&0xff,
-			(args[1]>>56)&0xff
-		}
+		local ret:sequence(uint8)
+		for _,v in ipairs(args) do
+			ret[#ret+1]=v&0xff
+			ret[#ret+1]=(v>>8)&0xff
+			ret[#ret+1]=(v>>16)&0xff
+			ret[#ret+1]=(v>>24)&0xff
+			ret[#ret+1]=(v>>32)&0xff
+			ret[#ret+1]=(v>>40)&0xff
+			ret[#ret+1]=(v>>48)&0xff
+			ret[#ret+1]=(v>>56)&0xff
+		end
+		return ret
 	end
 }

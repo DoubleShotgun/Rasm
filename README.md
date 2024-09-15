@@ -5,16 +5,30 @@ Rasm is a simple but powerful [RISC-V](https://riscv.org/about/) (RV64I) assembl
 
 ## Syntax
 
-Rasm's syntax is just like the RV64I standard, except for these changes: 
+Rasm's syntax is just like the RV64 standard, except for these changes: 
 
-- The load and store instructions no longer have the special syntax. <br>
-`ld rd,imm(r1) -> ld rd,r1,imm` <br>
-See [Todo](https://github.com/DoubleShotgun/Rasm#Todo) for more.
 - Load a string globally. <br>
 `String = "Hello!"` <br>
 `String` is now a label!
 - Prefixing a label with '%' while refering, gets the length of the label.
 `li a0,%String`
+- Calling a function. <br>
+```
+function:
+...
+ret
+
+function(1,String)
+```
+This is the equivalent to:
+
+```
+li a0,1
+la a1,String
+call function
+```
+(Also the load and store instructions no longer have the special syntax. <br>
+`ld rd,imm(r1) -> ld rd,r1,imm`) <br>
 
 ## Usage
 ```
@@ -23,7 +37,7 @@ Usage: rasm [d][s][o a.out] filein.asm
 ```
 * Options
 	- d: dump compiled raw binary to 'dump.bin'
-	- s: add section name (Advance)
+	- s: add section name
 	- o a.out: outfile for compiled code
 
 ## Instruction Set
@@ -95,28 +109,17 @@ This program returns exit code of 69, `echo $?` prints the exit code of the last
 See the [example](https://github.com/DoubleShotgun/Rasm/blob/main/example) folder for more.
 
 ## Todo
-- [ ] Rework the "Syntax system".
-- [ ] Rework the syntax of "call" and "ecall".
-```
-label(a0,a1,...)
-```
-Will be equivalent to:
-
-```
-li a0,1
-la a1,String
-call label
-```
-
-- [ ] Link to C libraries.
-- [ ] Better error message.
+- [x] Rework the "Syntax system".
+- [x] Rework the syntax of "call" and "ecall".
+- [x] Better error message.
+- [x] Add hex notation.
 - [ ] Add array, struct and vectors.
 *   Make standard library.
+	- [ ] syscall
 	- [ ] io
 	- [ ] string
 	- [ ] time
 	- [ ] math
 	- [ ] fb (frame buffer device)
-	- [ ] [Rives](https://rives.io/)
 
 - [ ] Tested on Window.

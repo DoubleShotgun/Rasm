@@ -2,7 +2,7 @@ exit = 93
 write = 64
 nanosleep = 101
 
- ; original art by Joan Stark (https://oldcompcz.github.io/jgs/joan_stark/)
+; original art by Joan Stark (https://oldcompcz.github.io/jgs/joan_stark/)
  
 cat1 = "       \\    /\\\n        )  ( \')\n       (  /  )\njgs     \\(__)|\n"
 cat2 = "      \\     /\\\n       |   ( \')\n       |  /  )\njgs     \\(__)|\n"
@@ -47,10 +47,11 @@ _start:
 	li s1,30 ;12*2+6
 	li s2,12
 loop:
-	mv a0,s0
-	remu a0,a0,s2
+	remu a0,s0,s2
 	call print
-	call sleep
+	
+	sleep()
+	
 	addi s0,s0,1
 	bne s0,s1,loop
 

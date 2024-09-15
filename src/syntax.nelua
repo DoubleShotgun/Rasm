@@ -14,15 +14,29 @@ global syntax = @record {
 	type:uint8,
 }
 
+local fileLen=0
+local eof=false
+
 global function Parse(file:filestream):syntax
+	if fileLen==0 then
+		file:seek("end")
+		fileLen = file:seek()
+		file:seek("set")
+	end
+	
 	local ret:syntax
-	local c = file:read(1)
-	if #file:read(1)==0 then
+	local c=file:read(1)
+	
+	if eof then
 		ret.str = "EOF"
 		ret.type=#[EOF]#
+		eof=false
 		return ret
 	end
-	file:seek("cur",-1)
+	if file:seek()>=fileLen then
+		eof = true
+		fileLen=0
+	end
 	
 	if c~="\"" then
 		ret.str=c
@@ -60,6 +74,7 @@ global function Parse(file:filestream):syntax
 					ret.str = ret.str..c
 					c = file:read(1)
 				end
+				file:seek("cur",-1)
 			end
 		end
 		
@@ -81,9 +96,18 @@ global function Parse(file:filestream):syntax
 	elseif c:match("%d") then
 		ret.type=#[Number]#
 		c = file:read(1)
-		while c:match("%d") do
+		if c:match("%d") then
+			while c:match("%d") do
+				ret.str = ret.str..c
+				c = file:read(1)
+			end
+		elseif c=="x" then
 			ret.str = ret.str..c
 			c = file:read(1)
+			while c:match("[%da-fA-F]") do
+				ret.str = ret.str..c
+				c = file:read(1)
+			end
 		end
 		file:seek("cur",-1)
 		
@@ -95,12 +119,18 @@ global function Parse(file:filestream):syntax
 			c = file:read(1)
 		end
 		file:seek("cur",-1)
-		
 	end
+	
 
 	if ret.type == "" then
-		rasmError("Unknown Syntax"..c,1)
+		rasmError("Unknown Syntax "..c,1)
+	end
+
+	if c:byte()==0 then
+		eof=true
+		fileLen=0
 	end
 	
 	return ret
 end
+
